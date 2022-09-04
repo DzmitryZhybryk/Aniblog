@@ -13,7 +13,7 @@ parser.add_argument("--host", help="Authentication host", type=str, default="0.0
 
 parser.add_argument("--port", help="Authentication port", type=str, default=8000)
 
-app = FastAPI(docs_url="/api/auth/docs", redoc_url=None, swagger_ui_parameters={"syntaxHighLight.theme": "obsidian"})
+app = FastAPI(docs_url="/api/auth/docs", redoc_url=None, swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"})
 
 
 def custom_openapi():
@@ -50,8 +50,9 @@ app.include_router(authentication_routes, prefix="/api/auth", tags=["Users"])
 
 def main():
     args = parser.parse_args()
-    uvicorn.run("app.main:app", host=args.host, port=args.port, reload=True)
+    uvicorn.run("main:app", host=args.host, port=args.port, reload=True)
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    uvicorn.run("main:app", reload=True)
