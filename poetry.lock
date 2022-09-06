@@ -160,6 +160,20 @@ python-versions = ">=3.6"
 pyparsing = ">=2.0.2,<3.0.5 || >3.0.5"
 
 [[package]]
+name = "passlib"
+version = "1.7.4"
+description = "comprehensive password hashing framework supporting over 30 schemes"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+argon2 = ["argon2-cffi (>=18.2.0)"]
+bcrypt = ["bcrypt (>=3.1.0)"]
+build_docs = ["sphinx (>=1.6)", "sphinxcontrib-fulltoc (>=1.2.0)", "cloud-sptheme (>=1.10.1)"]
+totp = ["cryptography"]
+
+[[package]]
 name = "pluggy"
 version = "1.0.0"
 description = "plugin and hook calling mechanisms for python"
@@ -334,7 +348,7 @@ standard = ["colorama (>=0.4)", "httptools (>=0.4.0)", "python-dotenv (>=0.13)",
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "a8bf1d35c691c69f4dc4f66d8b28edc14fc07572368a886b4f5cab4687cc0c82"
+content-hash = "88e5c68020ca460d85de6c5e9df868f58b8c82e7588cf1060f4383384a719d3c"
 
 [metadata.files]
 anyio = []
@@ -350,6 +364,7 @@ idna = []
 iniconfig = []
 orm = []
 packaging = []
+passlib = []
 pluggy = []
 psycopg2-binary = []
 py = []
