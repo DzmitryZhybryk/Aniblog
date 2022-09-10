@@ -1,8 +1,10 @@
-import psycopg2
-from sqlalchemy import create_engine
+import sqlalchemy
+
+from databases import Database
 from .config import config
 
-database = create_engine(config.database_url)
+database = Database(config.database_url)
+engine = sqlalchemy.create_engine(config.database_url)
 
 
 async def connect_database():

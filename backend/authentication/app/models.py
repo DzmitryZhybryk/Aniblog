@@ -1,8 +1,24 @@
 import orm
+import sqlalchemy
+
+from sqlalchemy import Integer, Column, String
 
 from .database import database
+from .config import config
 
 models = orm.ModelRegistry(database=database)
+
+metadata = sqlalchemy.MetaData()
+
+
+notest = sqlalchemy.Table(
+    "users1",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("username", String),
+    Column("password", String),
+    Column("role", String, default="user")
+)
 
 
 class User(orm.Model):
