@@ -53,8 +53,8 @@ app.include_router(authentication_routes, prefix="/api/auth", tags=["Users"])
 
 @app.on_event("startup")
 async def on_startup() -> None:
-    await connect_database()
     await models.create_all()
+    await connect_database()
     db_has_user = await has_db_user()
     if not db_has_user:
         await create_initial_user()
