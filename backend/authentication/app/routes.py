@@ -6,6 +6,6 @@ from .dependency import registration_user
 router = APIRouter()
 
 
-@router.post("/registration/")
+@router.post("/registration/", response_model=TokenData)
 def registration(user: UserRegistration = Depends(registration_user)):
-    return {"some": "Good"}
+    return user
