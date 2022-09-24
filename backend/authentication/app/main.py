@@ -1,14 +1,18 @@
 import uvicorn
-
+from fastapi import HTTPException, status, Request
+from fastapi.responses import JSONResponse
 from argparse import ArgumentParser
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 
 from .routes import router as authentication_routes
 from .database import connect_database, disconnect_database, engine
 from .models import models, metadata
 from .services import has_db_user, create_initial_user
+from .exception import UnauthorizedException, CredentialsException
 
 parser = ArgumentParser(description="Authentication service")
 
@@ -63,6 +67,30 @@ async def on_startup() -> None:
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
     await disconnect_database()
+
+
+@app.exception_handler(UnauthorizedException)
+def exception_handler(request: Request, exc: UnauthorizedException):
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"message": "Incorrect username or password"}
+    )
+
+
+@app.exception_handler(RequestValidationError)
+def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
+    )
+
+
+@app.exception_handler(CredentialsException)
+def credentials_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content=jsonable_encoder({"detail": exc.errors()})
+    )
 
 
 def main():
