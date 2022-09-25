@@ -7,9 +7,9 @@ from asyncpg.exceptions import UniqueViolationError
 from orm.exceptions import NoMatch
 
 from .exception import UnauthorizedException, CredentialsException
-from .models import User
+from .models import User, PersonData
 from .config import config
-from .schemas import UserBase, UserRegistration, TokenData
+from .schemas import UserBase, UserRegistration, TokenData, UserAdditionData
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ALGORITHM = "HS256"
@@ -86,3 +86,10 @@ async def get_user_by_username(username: str):
         return user
     except NoMatch:
         raise UnauthorizedException
+
+
+async def add_person_data(data: UserAdditionData):
+    additional_data = await PersonData.objects.create(first_name=data.first_name, last_name=data.last_name,
+                                                      birthday=data.birthday)
+    additional_data_schema = UserAdditionData.from_orm(additional_data)
+    return additional_data_schema

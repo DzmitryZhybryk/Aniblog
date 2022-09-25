@@ -1,9 +1,9 @@
 from datetime import timedelta
 
-from .schemas import UserBase, UserRegistration
+from .schemas import UserBase, UserRegistration, UserAdditionData
 from fastapi import HTTPException, status, Depends
 from .services import create_registration_user, create_access_token, get_current_user, get_user_by_username, \
-    is_verify_password
+    is_verify_password, add_person_data
 from .config import config
 
 
@@ -30,3 +30,8 @@ async def authenticate_user(user: UserBase):
     db_user.access_token = token
     db_user.token_type = "bearer"
     return db_user
+
+
+async def add_user_data(user: UserAdditionData):
+    additional_data = await add_person_data(user)
+    return additional_data

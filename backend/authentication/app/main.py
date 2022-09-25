@@ -1,8 +1,7 @@
 import uvicorn
-from fastapi import HTTPException, status, Request
+from fastapi import status, Request, FastAPI
 from fastapi.responses import JSONResponse
 from argparse import ArgumentParser
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.exceptions import RequestValidationError

@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, Field, Required, ValidationError, validator
 
 
@@ -18,10 +19,13 @@ class UserRegistration(UserBase):
         return v
 
 
-class UserAllData(UserBase):
+class UserAdditionData(BaseModel):
     first_name: str = Field(title="Real name", example="Dzmitry", default=None)
     last_name: str = Field(title="Real surname", example="Zybryk", default=None)
-    birthday: str = Field(title="date of birth", example="14.10.1990", default=None)
+    birthday: datetime = Field(title="date of birth", example="2022-09-25 15:41:39.641747", default=None)
+
+    class Config:
+        orm_mode = True
 
 
 class TokenData(BaseModel):
