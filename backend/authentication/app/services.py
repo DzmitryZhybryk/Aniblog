@@ -1,19 +1,19 @@
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import timedelta, datetime
-from fastapi import HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, OAuth2PasswordRequestFormStrict
+from fastapi import HTTPException, status, Depends, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from asyncpg.exceptions import UniqueViolationError
 from orm.exceptions import NoMatch
 
 from .exception import UnauthorizedException, CredentialsException
 from .models import User, PersonData
 from .config import config
-from .schemas import UserBase, UserRegistration, TokenData, UserAdditionData
+from .schemas import UserBase, UserRegistration, TokenData, UserOut, UserOut
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ALGORITHM = "HS256"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = HTTPBearer()
 
 
 async def has_db_user() -> bool:
@@ -48,20 +48,21 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encode_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(oauth2_scheme)) -> UserOut:
     try:
-        payload = jwt.decode(token, config.secret_key, algorithms=[ALGORITHM])
+        payload = jwt.decode(credentials.credentials, config.secret_key, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise CredentialsException
         token_data = TokenData(username=username)
     except JWTError:
         raise CredentialsException
-    user = await User.objects.get(username=token_data.username)
-    if user is None:
+    current_user = await User.objects.get(username=token_data.username)
+    if current_user is None:
         raise CredentialsException
 
-    return user
+    current_user_schema = UserOut.from_orm(current_user)
+    return current_user_schema
 
 
 async def create_registration_user(user: UserRegistration):
@@ -76,8 +77,7 @@ async def create_registration_user(user: UserRegistration):
             headers={"WWW-Authentication": "bearer"}
         )
 
-    user_schema = TokenData.from_orm(new_db_user)
-    return user_schema
+    return new_db_user
 
 
 async def get_user_by_username(username: str):
@@ -86,10 +86,3 @@ async def get_user_by_username(username: str):
         return user
     except NoMatch:
         raise UnauthorizedException
-
-
-async def add_person_data(data: UserAdditionData):
-    additional_data = await PersonData.objects.create(first_name=data.first_name, last_name=data.last_name,
-                                                      birthday=data.birthday)
-    additional_data_schema = UserAdditionData.from_orm(additional_data)
-    return additional_data_schema

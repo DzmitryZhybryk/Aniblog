@@ -32,5 +32,6 @@ class PersonData(orm.Model):
         "first_name": orm.String(allow_null=True, min_length=1, max_length=50),
         "last_name": orm.String(allow_null=True, min_length=1, max_length=50),
         "created_at": orm.DateTime(default=func.now()),
-        "birthday": orm.DateTime(allow_null=True)
+        "birthday": orm.DateTime(allow_null=True),
+        "user_id": orm.ForeignKey(User, on_delete="CASCADE")
     }
