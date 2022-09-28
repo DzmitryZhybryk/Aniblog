@@ -31,6 +31,10 @@ class UserOut(BaseModel):
     id: int
     username: str
     role: str
+    created_at: datetime = Field(example="2022-09-25 15:41:39.641747")
+    first_name: str | None = Field(example="Dzmitry", default=None)
+    last_name: str | None = Field(example="Zhybryk", default=None)
+    birthday: datetime | None = Field(example="1990-10-14 15:41:39.641747", default=None)
 
     class Config:
         orm_mode = True

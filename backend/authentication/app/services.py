@@ -7,7 +7,7 @@ from asyncpg.exceptions import UniqueViolationError
 from orm.exceptions import NoMatch
 
 from .exception import UnauthorizedException, CredentialsException
-from .models import User, PersonData
+from .models import User
 from .config import config
 from .schemas import UserBase, UserRegistration, TokenData, UserOut, UserOut
 
