@@ -7,7 +7,7 @@ from asyncpg.exceptions import UniqueViolationError
 from orm.exceptions import NoMatch
 
 from .exception import UnauthorizedException, CredentialsException
-from .models import User
+from .models import User, Role
 from .config import config
 from .schemas import UserBase, UserRegistration, TokenData, UserOut, UserOut
 
@@ -21,6 +21,11 @@ async def has_db_user() -> bool:
     return bool(user_count)
 
 
+async def has_db_roles() -> bool:
+    roles_count = await Role.objects.first()
+    return bool(roles_count)
+
+
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
@@ -32,9 +37,16 @@ def is_verify_password(plain_password: str, hashed_password: str) -> bool:
     return is_verify
 
 
+async def create_users_roles():
+    roles = ["admin", "moderator", "base_user"]
+    for role in roles:
+        await Role.objects.create(role=role)
+
+
 async def create_initial_user():
     hashed_password = get_password_hash("admin")
-    await User.objects.create(username="admin", password=hashed_password, role="admin")
+    initial_user_role = await Role.objects.get(role="admin")
+    await User.objects.create(username="admin", password=hashed_password, user_role=initial_user_role)
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
@@ -58,10 +70,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     except JWTError:
         raise CredentialsException
     current_user = await User.objects.get(username=token_data.username)
+    await current_user.user_role.load()
     if current_user is None:
         raise CredentialsException
 
-    current_user_schema = UserOut.from_orm(current_user)
+    current_user_schema = UserOut(id=current_user.id, username=current_user.username,
+                                  created_at=current_user.created_at, role=current_user.user_role.role)
     return current_user_schema
 
 
@@ -69,7 +83,9 @@ async def create_registration_user(user: UserRegistration):
     hashed_password = get_password_hash(user.password)
 
     try:
-        new_db_user = await User.objects.create(username=user.username, password=hashed_password)
+        new_db_user_role = await Role.objects.get(role="base_user")
+        await User.objects.create(username=user.username, password=hashed_password,
+                                  user_role=new_db_user_role)
     except UniqueViolationError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -77,7 +93,7 @@ async def create_registration_user(user: UserRegistration):
             headers={"WWW-Authentication": "bearer"}
         )
 
-    return new_db_user
+    return new_db_user_role
 
 
 async def get_user_by_username(username: str):

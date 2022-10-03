@@ -8,9 +8,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 
 from .routes import router as authentication_routes
-from .database import connect_database, disconnect_database, engine
-from .models import models, metadata
-from .services import has_db_user, create_initial_user
+from .database import connect_database, disconnect_database
+from .models import models
+from .services import has_db_user, create_initial_user, has_db_roles, create_users_roles
 from .exception import UnauthorizedException, CredentialsException
 
 parser = ArgumentParser(description="Authentication service")
@@ -58,6 +58,11 @@ app.include_router(authentication_routes, prefix="/api/auth", tags=["Users"])
 async def on_startup() -> None:
     await models.create_all()
     await connect_database()
+
+    db_has_roles = await has_db_roles()
+    if not db_has_roles:
+        await create_users_roles()
+
     db_has_user = await has_db_user()
     if not db_has_user:
         await create_initial_user()

@@ -2,7 +2,12 @@ from pathlib import Path
 
 from pydantic import BaseSettings
 
-DATABASE_URL = "postgresql://dzmitry_zhybryk:3050132596@localhost/aniblog_db"
+BASE_DIR = Path(__file__).parent
+DATABASE_PATH = BASE_DIR / 'db.sqlite3'
+DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
+
+
+# DATABASE_URL = "postgresql://dzmitry_zhybryk:3050132596@localhost/aniblog_db"
 
 
 class Config(BaseSettings):
