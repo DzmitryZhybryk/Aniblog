@@ -7,10 +7,10 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 
-from .routes import router as authentication_routes
+from .initialization.routes import router as initialisation_routes
 from .database import connect_database, disconnect_database
 from .models import models
-from .services import has_db_user, create_initial_user, has_db_roles, create_users_roles
+from .initialization.services import has_db_user, create_initial_user, has_db_roles, create_users_roles
 from .exception import UnauthorizedException, CredentialsException
 
 parser = ArgumentParser(description="Authentication service")
@@ -51,7 +51,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-app.include_router(authentication_routes, prefix="/api/auth", tags=["Users"])
+app.include_router(initialisation_routes, prefix="/api/auth", tags=["Initialisation"])
 
 
 @app.on_event("startup")
@@ -75,6 +75,7 @@ async def on_shutdown() -> None:
 
 @app.exception_handler(UnauthorizedException)
 def exception_handler(request: Request, exc: UnauthorizedException):
+    """Кастомное исключение для неавторизованных пользователей"""
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
         content={"message": "Incorrect username or password"}
@@ -83,6 +84,7 @@ def exception_handler(request: Request, exc: UnauthorizedException):
 
 @app.exception_handler(RequestValidationError)
 def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Кастомное исключение для вывода более информативного ответа 422 ошибки"""
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
@@ -99,9 +101,9 @@ def credentials_exception_handler(request: Request, exc: RequestValidationError)
 
 def main():
     args = parser.parse_args()
-    uvicorn.run("main:app", host=args.host, port=args.port, reload=True)
+    uvicorn.run("app.main:app", host=args.host, port=args.port, reload=True)
 
 
 if __name__ == '__main__':
-    # main()
-    uvicorn.run("main:app", reload=True)
+    main()
+    # uvicorn.run("main:app", reload=True)
