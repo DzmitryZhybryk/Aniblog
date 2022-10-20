@@ -6,7 +6,7 @@ from ..config import config
 from ..exception import UnauthorizedException
 
 
-def _generate_token(user: UserBase) -> Token:
+def _generate_token_data(user: UserBase) -> Token:
     """
     Функция для генерации токенов доступа
 
@@ -28,7 +28,7 @@ async def registration_user(user: UserRegistration) -> Token:
     :return: pydantic model с bearer access token
     """
     await create_registration_user(user)
-    token_schema = _generate_token(user)
+    token_schema = _generate_token_data(user)
 
     return token_schema
 
@@ -43,6 +43,6 @@ async def authenticate_user(user: UserBase) -> Token:
     db_user = await get_user_by_username(user.username)
     if not is_verify_password(user.password, db_user.password):
         raise UnauthorizedException
-    token_schema = _generate_token(user)
+    token_schema = _generate_token_data(user)
 
     return token_schema

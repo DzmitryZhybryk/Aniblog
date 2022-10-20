@@ -45,25 +45,41 @@ def _get_password_hash(password: str) -> str:
 
 
 def is_verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Функция для верификации пароля
+
+    :param plain_password: пароль из формы
+    :param hashed_password: пароль из базы данных
+    :return: True - если пароли совпадают и False - если нет
+    """
     is_verify = pwd_context.verify(plain_password, hashed_password)
     if not is_verify:
         raise UnauthorizedException
     return is_verify
 
 
-async def create_users_roles():
-    roles = ["admin", "moderator", "base_user"]
+async def create_users_roles() -> None:
+    """Функция для создания ролей пользователей в базе данных"""
+    roles = config.roles
     for role in roles:
         await Role.objects.create(role=role)
 
 
-async def create_initial_user():
+async def create_initial_user() -> None:
+    """Функция для создания первого пользователя при запуске приложения"""
     hashed_password = _get_password_hash("admin")
     initial_user_role = await Role.objects.get(role="admin")
     await User.objects.create(username="admin", password=hashed_password, user_role=initial_user_role)
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """
+    Функция для создания токена доступа
+
+    :param data: dict с именем пользователя
+    :param expires_delta: время жизни токена
+    :return: access token
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
