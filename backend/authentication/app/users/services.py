@@ -1,7 +1,8 @@
+from datetime import timedelta, datetime
 from jose import jwt
 from passlib.context import CryptContext
-from datetime import timedelta, datetime
 from fastapi import HTTPException, status
+
 from asyncpg.exceptions import UniqueViolationError
 from orm.exceptions import NoMatch
 from sqlite3 import IntegrityError

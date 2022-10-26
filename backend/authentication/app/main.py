@@ -7,11 +7,11 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 
-from .initialization.routes import router as initialisation_routes
+from .users.routes import router as initialisation_routes
 from .database import connect_database, disconnect_database
 from .models import models
-from .initialization.services import has_db_user, create_initial_user, has_db_roles, create_users_roles
-from .exception import UnauthorizedException, CredentialsException
+from .users.services import has_db_user, create_initial_user, has_db_roles, create_users_roles
+from .exception import UnauthorizedException
 
 parser = ArgumentParser(description="Authentication service")
 
@@ -51,7 +51,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-app.include_router(initialisation_routes, prefix="/api/auth", tags=["Initialisation"])
+app.include_router(initialisation_routes, prefix="/api/auth")
 
 
 @app.on_event("startup")
@@ -88,14 +88,6 @@ def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
-    )
-
-
-@app.exception_handler(CredentialsException)
-def credentials_exception_handler(request: Request, exc: RequestValidationError):
-    return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content=jsonable_encoder({"detail": exc.errors()})
     )
 
 

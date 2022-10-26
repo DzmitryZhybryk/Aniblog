@@ -4,7 +4,3 @@ class CustomException(Exception):
 
 class UnauthorizedException(CustomException):
     pass
-
-
-class CredentialsException(CustomException):
-    pass

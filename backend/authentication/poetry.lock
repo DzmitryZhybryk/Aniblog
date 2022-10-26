@@ -349,6 +349,14 @@ tomli = ">=1.0.0"
 testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "xmlschema"]
 
 [[package]]
+name = "pytest-check"
+version = "1.0.10"
+description = "A pytest plugin that allows multiple failures per test."
+category = "main"
+optional = false
+python-versions = ">3.7"
+
+[[package]]
 name = "python-jose"
 version = "3.3.0"
 description = "JOSE implementation in Python"
@@ -527,7 +535,7 @@ standard = ["colorama (>=0.4)", "httptools (>=0.4.0)", "python-dotenv (>=0.13)",
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "10ced5b3ecbad91d97563b6cc1efdf0ef80182ebc9ca5fc80c33cb83e4056928"
+content-hash = "d15be27c9e27ec532d18687bd83e8ccd6e432d31db6a35719f6b73dc3ef55db3"
 
 [metadata.files]
 aiosqlite = [
@@ -839,6 +847,10 @@ pyparsing = [
 pytest = [
     {file = "pytest-7.1.3-py3-none-any.whl", hash = "sha256:1377bda3466d70b55e3f5cecfa55bb7cfcf219c7964629b967c37cf0bda818b7"},
     {file = "pytest-7.1.3.tar.gz", hash = "sha256:4f365fec2dff9c1162f834d9f18af1ba13062db0c708bf7b946f8a5c76180c39"},
+]
+pytest-check = [
+    {file = "pytest-check-1.0.10.tar.gz", hash = "sha256:9e0edcd740f2c5be6a6cedb64c390d979c00cd7836798acb3b6d6c8ed101a22a"},
+    {file = "pytest_check-1.0.10-py3-none-any.whl", hash = "sha256:5e11fa4e5daf525b05080a756966aa8e18be6f57db7887fc081e4b2ab352948e"},
 ]
 python-jose = [
     {file = "python-jose-3.3.0.tar.gz", hash = "sha256:55779b5e6ad599c6336191246e95eb2293a9ddebd555f796a65f838f07e5d78a"},
