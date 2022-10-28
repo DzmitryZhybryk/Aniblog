@@ -104,11 +104,11 @@ async def create_registration_user(user: UserRegistration) -> None:
     try:
         new_db_user_role = await Role.objects.get(role="base_user")
         await User.objects.create(username=user.username, password=hashed_password,
-                                  user_role=new_db_user_role)
-    except (UniqueViolationError, IntegrityError):
+                                  user_role=new_db_user_role, email=user.email)
+    except (UniqueViolationError, IntegrityError) as ex:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"User with username '{user.username}' already exist",
+            detail=f"{ex}",
             headers={"WWW-Authentication": "bearer"}
         )
 
@@ -151,7 +151,7 @@ async def update_current_db_user_data(current_user: str, user_info: UserUpdate) 
         if user_info.birthday:
             if _is_birthday_exist(db_user):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail="You can change your birthday once. Contact moderator")
+                                    detail="You can't change your birthday. Contact moderator")
 
         await db_user.update(username=user_info.username, first_name=user_info.first_name,
                              last_name=user_info.last_name, birthday=user_info.birthday)

@@ -27,4 +27,5 @@ async def current_user(user: UserOut = Depends(get_current_user)):
 
 @router.put("/me/", response_model=UserUpdate, dependencies=[Depends(RoleRequired(config.roles))], tags=["User"])
 async def current_user_update(user: UserUpdate = Depends(update_current_user)):
+    """Роут для изменения данных текущего пользователя"""
     return user

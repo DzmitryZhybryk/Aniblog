@@ -25,7 +25,7 @@ class User(orm.Model):
     fields = {
         "id": orm.Integer(primary_key=True),
         "username": orm.String(unique=True, min_length=5, max_length=20),
-        "email": orm.Email(unique=True, max_length=20),
+        "email": orm.Email(unique=True, max_length=100),
         "password": orm.String(allow_blank=False, allow_null=False, max_length=500),
         "first_name": orm.String(allow_null=True, min_length=1, max_length=50),
         "last_name": orm.String(allow_null=True, min_length=1, max_length=50),
