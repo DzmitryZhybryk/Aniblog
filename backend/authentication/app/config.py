@@ -16,7 +16,7 @@ class Config(BaseSettings):
     secret_key: str = 'nJ98h9ahAa8h3AH98ahw9dhapw1Hd8'
     access_token_expire_minute: int = 30
     algorithm: str = "HS256"
-    roles: list = ["admin", "moderator", "base_user"]
+    roles: list = {"admin", "moderator", "base_user"}
 
 
 config = Config()

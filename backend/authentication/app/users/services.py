@@ -10,7 +10,7 @@ from sqlite3 import IntegrityError
 from ..exception import UnauthorizedException
 from ..models import User, Role
 from ..config import config
-from .schemas import UserRegistration
+from .schemas import UserRegistration, UserUpdate
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -70,7 +70,8 @@ async def create_initial_user() -> None:
     """Функция для создания первого пользователя при запуске приложения"""
     hashed_password = _get_password_hash("admin")
     initial_user_role = await Role.objects.get(role="admin")
-    await User.objects.create(username="admin", password=hashed_password, user_role=initial_user_role)
+    await User.objects.create(username="admin", password=hashed_password, user_role=initial_user_role,
+                              email="testk@mail.ru")
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
@@ -117,10 +118,43 @@ async def get_user_by_username(username: str) -> User:
     Функция получает на вход имя пользователя, ищет его в базе данных и если находит, возвращает этого пользователя
 
     :param username: имя пользователя которого будем искать в базе данных
-    :return: объект класса User
+    :return: объект класса User с данными пользователя из базы данных
     """
     try:
         user: User = await User.objects.get(username=username)
         return user
+    except NoMatch:
+        raise UnauthorizedException
+
+
+def _is_birthday_exist(db_user: User) -> bool:
+    """
+    Функция проверяет, заполнено ли поле birthday в базе данных
+
+    :param db_user: пользователь из базы данных
+    :return: True, если поле birthday заполнено в базе данных и False, если нет
+    """
+    if db_user.birthday:
+        return True
+
+
+async def update_current_db_user_data(current_user: str, user_info: UserUpdate) -> User:
+    """
+    Функция обновляет данные текущего пользователя в базе данных
+
+    :param current_user: имя текущего пользователя
+    :param user_info: UserUpdate pydantic схема с данными, которые надо обновить в базе данных
+    :return: объект класса User с обновленными данными пользователя из базы данных
+    """
+    try:
+        db_user: User = await get_user_by_username(current_user)
+        if user_info.birthday:
+            if _is_birthday_exist(db_user):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail="You can change your birthday once. Contact moderator")
+
+        await db_user.update(username=user_info.username, first_name=user_info.first_name,
+                             last_name=user_info.last_name, birthday=user_info.birthday)
+        return db_user
     except NoMatch:
         raise UnauthorizedException

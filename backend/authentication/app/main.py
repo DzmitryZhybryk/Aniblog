@@ -7,7 +7,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 
-from .users.routes import router as initialisation_routes
+from .users.routes import router as user_routes
 from .database import connect_database, disconnect_database
 from .models import models
 from .users.services import has_db_user, create_initial_user, has_db_roles, create_users_roles
@@ -51,7 +51,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-app.include_router(initialisation_routes, prefix="/api/auth")
+app.include_router(user_routes, prefix="/api/auth")
 
 
 @app.on_event("startup")

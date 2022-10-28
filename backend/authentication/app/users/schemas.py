@@ -3,14 +3,15 @@ from pydantic import BaseModel, Field, Required, validator
 
 
 class UserBase(BaseModel):
-    username: str = Field(default=Required, title="Enter your username", example="admin", min_length=5,
+    username: str = Field(default=Required, title="Enter your username", example="djinkster", min_length=5,
                           max_length=20)
-    password: str = Field(default=Required, title="Enter your password", example="admin", min_length=5,
+    password: str = Field(default=Required, title="Enter your password", example="123password", min_length=5,
                           max_length=50)
 
 
 class UserRegistration(UserBase):
-    confirm_password: str = Field(default=Required, title="Confirm your password", example="admin")
+    email: str = Field(default=Required, title="Enter your email address", example="mr.jibrik@mail.ru")
+    confirm_password: str = Field(default=Required, title="Confirm your password", example="123password")
 
     @validator("confirm_password")
     def passwords_match(cls, v, values, **kwargs):
@@ -30,15 +31,18 @@ class TokenData(BaseModel):
 
 class UserUpdate(BaseModel):
     username: str | None = Field(example="admin")
-    user_role: str | None = Field(example="base_user")
-    created_at: datetime | None = Field(example="2022-09-25 15:41:39.641747")
     first_name: str | None = Field(example="Dzmitry")
     last_name: str | None = Field(example="Zhybryk")
-    birthday: datetime | None = Field(example="1990-10-14 15:41:39.641747")
+    email: str | None = Field(example="example@mail.ru")
+    birthday: datetime | None = Field(None, example="1990-10-14 15:41:39.641747")
 
     class Config:
         orm_mode = True
 
 
 class UserOut(UserUpdate):
-    id: int = Field(example="1")
+    user_role: str | None = Field(example="base_user")
+    created_at: datetime | None = Field(example="2022-09-25 15:41:39.641747")
+
+    class Config:
+        orm_mode = True
