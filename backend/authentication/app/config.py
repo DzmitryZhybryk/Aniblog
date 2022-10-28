@@ -17,6 +17,9 @@ class Config(BaseSettings):
     access_token_expire_minute: int = 30
     algorithm: str = "HS256"
     roles: list = {"admin", "moderator", "base_user"}
+    smtp_server: str = "smtp.mail.ru"
+    work_email: str = "aniblog_project@mail.ru"
+    email_password: str = "eqG88eqx6buSm9Ehfpf6"
 
 
 config = Config()
