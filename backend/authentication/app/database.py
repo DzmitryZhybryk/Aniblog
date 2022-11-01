@@ -1,10 +1,10 @@
 import sqlalchemy
 
 from databases import Database
-from .config import config
+from .config import database_config
 
-database = Database(config.database_url)
-engine = sqlalchemy.create_engine(config.database_url)
+database = Database(database_config.database_url)
+engine = sqlalchemy.create_engine(database_config.database_url)
 
 
 async def connect_database():

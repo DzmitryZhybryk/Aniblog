@@ -9,7 +9,7 @@ from sqlite3 import IntegrityError
 
 from ..exception import UnauthorizedException
 from ..models import User, Role
-from ..config import config
+from ..config import database_config, decode_config
 from .schemas import UserRegistration, UserUpdate
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -61,7 +61,7 @@ def is_verify_password(plain_password: str, hashed_password: str) -> bool:
 
 async def create_users_roles() -> None:
     """Функция для создания ролей пользователей в базе данных"""
-    roles = config.roles
+    roles = database_config.roles
     for role in roles:
         await Role.objects.create(role=role)
 
@@ -86,9 +86,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=config.access_token_expire_minute)
+        expire = datetime.utcnow() + timedelta(minutes=decode_config.access_token_expire_minute)
     to_encode.update({"exp": expire})
-    encode_jwt = jwt.encode(to_encode, config.secret_key, algorithm=config.algorithm)
+    encode_jwt = jwt.encode(to_encode, decode_config.secret_key, algorithm=decode_config.algorithm)
     return encode_jwt
 
 

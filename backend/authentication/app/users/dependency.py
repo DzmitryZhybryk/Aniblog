@@ -6,7 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .schemas import UserBase, UserRegistration, Token, UserOut, TokenData, UserUpdate
 from .services import create_registration_user, create_access_token, get_user_by_username, is_verify_password, \
     update_current_db_user_data
-from ..config import config
+from ..config import database_config, decode_config
 from ..exception import UnauthorizedException
 
 oauth2_scheme = HTTPBearer()
@@ -19,7 +19,7 @@ def _generate_token_data(user: UserBase) -> Token:
     :param user: pydantic model с данными пользователя
     :return: Token pydantic схема с bearer access token
     """
-    access_token_expires = timedelta(minutes=config.access_token_expire_minute)
+    access_token_expires = timedelta(minutes=decode_config.access_token_expire_minute)
     token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
     token_schema = Token(access_token=token, token_type="Bearer")
 
@@ -34,7 +34,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     :return: UserOut pydantic схема с данными текущего пользователя
     """
     try:
-        payload = jwt.decode(credentials.credentials, config.secret_key, algorithms=[config.algorithm])
+        payload = jwt.decode(credentials.credentials, decode_config.secret_key, algorithms=[decode_config.algorithm])
         username: str = payload.get("sub")
         if username is None:
             raise UnauthorizedException
@@ -58,7 +58,7 @@ class RoleRequired:
 
     def __init__(self, role: set):
         self.role = role
-        self.roles: set = config.roles
+        self.roles: set = database_config.roles
 
     def __call__(self, user: UserOut = Depends(get_current_user)):
         if user.user_role not in self.role:
