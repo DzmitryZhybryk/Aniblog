@@ -34,3 +34,13 @@ class User(orm.Model):
         "picture_url": orm.String(allow_null=True, max_length=500, default=None),
         "user_role": orm.ForeignKey(Role, on_delete="CASCADE")
     }
+
+
+class VerificationCode(orm.Model):
+    tablename = "verification_codes"
+    registry = models
+    fields = {
+        "id": orm.Integer(primary_key=True),
+        "code": orm.Integer(allow_null=False),
+        "user_username": orm.ForeignKey(User)
+    }

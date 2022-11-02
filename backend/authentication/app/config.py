@@ -23,12 +23,18 @@ class DecodeConfig(BaseSettings):
 
 
 class EmailSenderConfig(BaseSettings):
-    smtp_server_host: str = "smtppp.gmail.com"
+    smtp_server_host: str = "smtp.gmail.com"
     smtp_server_port: int = 587
     work_email: str = "mr.zhybryk@gmail.com"
     email_password: str = "gjovrgkjcxurtztj"
 
 
+class BaseConfig(BaseSettings):
+    upper_bound: int = 1000
+    lower_bound: int = 9999
+
+
 database_config = DatabaseConfig()
 decode_config = DecodeConfig()
 email_sender_config = EmailSenderConfig()
+base_config = BaseConfig()

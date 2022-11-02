@@ -19,8 +19,8 @@ class UserBase(BaseModel):
 
 
 class UserRegistration(UserBase):
-    email: str = Field(default=Required, title="Enter your email address")
     confirm_password: str = Field(default=Required, title="Confirm your password")
+    email: str = Field(default=Required, title="Enter your email address")
 
     class Config(UserBase.Config):
         schema_extra = {
@@ -101,3 +101,7 @@ class UserOut(UserUpdate):
                 "created_at": "2022-09-25 15:41:39.641747"
             }
         }
+
+
+class RegistrationCode(BaseModel):
+    registration_code: int

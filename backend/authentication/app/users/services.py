@@ -8,9 +8,11 @@ from orm.exceptions import NoMatch
 from sqlite3 import IntegrityError
 
 from ..exception import UnauthorizedException
-from ..models import User, Role
+from ..models import User, Role, VerificationCode
 from ..config import database_config, decode_config
-from .schemas import UserRegistration, UserUpdate
+from .schemas import UserRegistration, UserUpdate, RegistrationCode
+from ..utils.email_sender import EmailSender
+from ..utils.verification_code import verification_code
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -103,13 +105,15 @@ async def create_registration_user(user: UserRegistration) -> None:
 
     try:
         new_db_user_role = await Role.objects.get(role="base_user")
-        await User.objects.create(username=user.username, password=hashed_password,
-                                  user_role=new_db_user_role, email=user.email)
+        new_db_user = await User.objects.create(username=user.username, password=hashed_password,
+                                                user_role=new_db_user_role, email=user.email)
+        await VerificationCode.objects.create(code=verification_code.get_verification_code(), user_username=new_db_user)
+        email = EmailSender(user.email, verification_code.get_verification_code())
+        email.send_email()
     except (UniqueViolationError, IntegrityError) as ex:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"{ex}",
-            headers={"WWW-Authentication": "bearer"}
+            detail=f"{ex}"
         )
 
 
@@ -125,6 +129,12 @@ async def get_user_by_username(username: str) -> User:
         return user
     except NoMatch:
         raise UnauthorizedException
+
+
+async def get_user_by_registration_code(code: RegistrationCode):
+    code = await VerificationCode.objects.get(code=code.registration_code)
+    user = await User.objects.get(id=code.user_username)
+    return user
 
 
 def _is_birthday_exist(db_user: User) -> bool:

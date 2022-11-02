@@ -3,9 +3,9 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from .schemas import UserBase, UserRegistration, Token, UserOut, TokenData, UserUpdate
+from .schemas import UserBase, UserRegistration, Token, UserOut, TokenData, UserUpdate, RegistrationCode
 from .services import create_registration_user, create_access_token, get_user_by_username, is_verify_password, \
-    update_current_db_user_data
+    update_current_db_user_data, get_user_by_registration_code
 from ..config import database_config, decode_config
 from ..exception import UnauthorizedException
 
@@ -65,7 +65,7 @@ class RoleRequired:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough rights")
 
 
-async def registration_user(user: UserRegistration) -> Token:
+async def registration_user(user: UserRegistration) -> None:
     """
     Dependency, используется для регистрации новых пользователей
 
@@ -73,6 +73,10 @@ async def registration_user(user: UserRegistration) -> Token:
     :return: pydantic model с bearer access token
     """
     await create_registration_user(user)
+
+
+async def confirm_registration_user(verification_code: RegistrationCode) -> Token:
+    user = await get_user_by_registration_code(code=verification_code)
     token_schema = _generate_token_data(user)
 
     return token_schema
