@@ -1,0 +1,9 @@
+sudo apt install lsb-release
+curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+sudo apt-get update
+sudo apt-get install redis
+pip install aioredis
+ACL SETUSER admin on >admin allcommands allkeys
+auth admin admin
+set address "some address"
+get address
