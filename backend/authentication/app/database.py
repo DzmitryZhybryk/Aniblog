@@ -1,10 +1,10 @@
-import sqlalchemy
-
 from databases import Database
 from .config import database_config
 
-database = Database(database_config.database_url)
-engine = sqlalchemy.create_engine(database_config.database_url)
+DATABASE_URL = f"postgresql://{database_config.postgres_user}:{database_config.postgres_password}@" \
+               f"{database_config.postgres_hostname}:{database_config.database_port}/{database_config.postgres_db}"
+
+database = Database(DATABASE_URL)
 
 
 async def connect_database():
