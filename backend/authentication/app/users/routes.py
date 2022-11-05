@@ -11,7 +11,7 @@ router = APIRouter()
 @router.post("/registration/", tags=["Initialization"], dependencies=[Depends(registration_user)])
 async def registration():
     """Роут для регистрации новых пользователей"""
-    return {"some": "message"}
+    return {"message": "Данные для подвтерждения регистрации отправлены на Ваш Email"}
 
 
 @router.post("/registration/confirm/", response_model=Token, tags=["Initialization"])

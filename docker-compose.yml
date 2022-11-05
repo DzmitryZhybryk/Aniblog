@@ -10,5 +10,17 @@ services:
       - backend/authentication/app/.env
     volumes:
       - postgres-db:/var/lib/postgresql/data
+
+  cache:
+    image: redis
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel --requirepass 3050132596
+    volumes:
+      - cache:/data
+
 volumes:
   postgres-db:
+  cache:
+    driver: local

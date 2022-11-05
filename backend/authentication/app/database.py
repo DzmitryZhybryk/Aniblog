@@ -1,3 +1,5 @@
+import aioredis
+
 from databases import Database
 
 from .config import database_config
@@ -19,4 +21,32 @@ class DatabaseWorker(Database):
         await self.database_obj.disconnect()
 
 
+class RedisWorker:
+    def __init__(self, url: str, username: str, password: str, db: int):
+        self.url = url
+        self.username = username
+        self.password = password
+        self.db = db
+        self.connect = aioredis.from_url(self.url, username=self.username, password=self.password, db=self.db)
+
+    async def set_data(self, key: str, value: str) -> dict:
+        try:
+            await self.connect.set(key, value)
+            return {"message": "data was added"}
+        except Exception as ex:
+            print(ex)
+        finally:
+            await self.connect.close()
+
+    async def get_data(self, key: str) -> dict:
+        try:
+            data = await self.connect.get(key)
+            return data
+        except Exception as ex:
+            print(ex)
+        finally:
+            self.connect.close()
+
+
 database = DatabaseWorker(DATABASE_URL)
+redis_database = RedisWorker(url="redis://localhost", username="admin", password="admin", db=0)

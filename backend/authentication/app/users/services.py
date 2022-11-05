@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime
 from jose import jwt
-from passlib.context import CryptContext
+
 from fastapi import HTTPException, status
 
 from asyncpg.exceptions import UniqueViolationError
@@ -9,12 +9,12 @@ from sqlite3 import IntegrityError
 
 from ..exception import UnauthorizedException
 from ..models import User, Role, VerificationCode
-from ..config import database_config, decode_config
+from ..config import database_config, jwt_config
 from .schemas import UserRegistration, UserUpdate, RegistrationCode
 from ..utils.email_sender import EmailSender
 from ..utils.code_verification import verification_code
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from ..utils.password_verification import hash_password
+from ..database import redis_database
 
 
 async def has_db_user() -> bool:
@@ -37,30 +37,6 @@ async def has_db_roles() -> bool:
     return bool(roles_count)
 
 
-def _get_password_hash(password: str) -> str:
-    """
-    Функция хэширует полученные данные
-
-    :param password: str object для хэширования
-    :return: str object с хэшированными данными
-    """
-    return pwd_context.hash(password)
-
-
-def is_verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Функция для верификации пароля
-
-    :param plain_password: пароль из формы
-    :param hashed_password: пароль из базы данных
-    :return: True - если пароли совпадают и False - если нет
-    """
-    is_verify = pwd_context.verify(plain_password, hashed_password)
-    if not is_verify:
-        raise UnauthorizedException
-    return is_verify
-
-
 async def create_users_roles() -> None:
     """Функция для создания ролей пользователей в базе данных"""
     roles = database_config.roles
@@ -70,7 +46,7 @@ async def create_users_roles() -> None:
 
 async def create_initial_user() -> None:
     """Функция для создания первого пользователя при запуске приложения"""
-    hashed_password = _get_password_hash("admin")
+    hashed_password = hash_password("admin")
     initial_user_role = await Role.objects.get(role="admin")
     await User.objects.create(username="admin", password=hashed_password, user_role=initial_user_role,
                               email="test@mail.ru")
@@ -88,10 +64,24 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=decode_config.access_token_expire_minute)
+        expire = datetime.utcnow() + timedelta(minutes=jwt_config.access_token_expire)
     to_encode.update({"exp": expire})
-    encode_jwt = jwt.encode(to_encode, decode_config.secret_key, algorithm=decode_config.algorithm)
+    encode_jwt = jwt.encode(to_encode, jwt_config.secret_key, algorithm=jwt_config.jwt_algorithm)
     return encode_jwt
+
+
+async def _check_exist_username(username: str):
+    db_user = await User.objects.get(username=username.lower())
+    if db_user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail=f"Account with username {username} already exist")
+
+
+async def _verify_registration_code(username: str, email: str):
+    registration_code = verification_code.get_verification_code()
+    redis_database.set_data(key=username, value=registration_code)
+    email = EmailSender(email, registration_code)
+    email.send_email()
 
 
 async def create_registration_user(user: UserRegistration) -> None:
@@ -101,19 +91,17 @@ async def create_registration_user(user: UserRegistration) -> None:
     :param user: pydantic model с данными для регистрации нового пользователя
     :return: None
     """
-    hashed_password = _get_password_hash(user.password)
+    hashed_password = hash_password(user.password)
 
     try:
         new_db_user_role = await Role.objects.get(role="base_user")
-        new_db_user = await User.objects.create(username=user.username, password=hashed_password,
+        new_db_user = await User.objects.create(username=user.username.lower(), password=hashed_password,
                                                 user_role=new_db_user_role, email=user.email)
-        await VerificationCode.objects.create(code=verification_code.get_verification_code(), user_username=new_db_user)
-        email = EmailSender(user.email, verification_code.get_verification_code())
-        email.send_email()
+
     except (UniqueViolationError, IntegrityError) as ex:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"{ex}"
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"{ex}: Account already exist"
         )
 
 

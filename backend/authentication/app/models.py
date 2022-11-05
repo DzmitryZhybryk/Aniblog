@@ -1,3 +1,5 @@
+import uuid
+
 import orm
 import sqlalchemy
 
@@ -23,7 +25,7 @@ class User(orm.Model):
     tablename = "users"
     registry = models
     fields = {
-        "id": orm.Integer(primary_key=True),
+        "id": orm.UUID(primary_key=True, allow_null=False, default=uuid.uuid4()),
         "username": orm.String(unique=True, min_length=5, max_length=20),
         "email": orm.Email(unique=True, max_length=100),
         "password": orm.String(allow_blank=False, allow_null=False, max_length=500),

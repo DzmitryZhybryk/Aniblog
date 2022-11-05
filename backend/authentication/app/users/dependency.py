@@ -4,10 +4,11 @@ from fastapi import HTTPException, status, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from .schemas import UserBase, UserRegistration, Token, UserOut, TokenData, UserUpdate, RegistrationCode
-from .services import create_registration_user, create_access_token, get_user_by_username, is_verify_password, \
+from .services import create_registration_user, create_access_token, get_user_by_username, \
     update_current_db_user_data, get_user_by_registration_code
-from ..config import database_config, decode_config
+from ..config import database_config, jwt_config
 from ..exception import UnauthorizedException
+from ..utils.password_verification import verify_password
 
 oauth2_scheme = HTTPBearer()
 
@@ -19,7 +20,7 @@ def _generate_token_data(user: UserBase) -> Token:
     :param user: pydantic model с данными пользователя
     :return: Token pydantic схема с bearer access token
     """
-    access_token_expires = timedelta(minutes=decode_config.access_token_expire_minute)
+    access_token_expires = timedelta(minutes=jwt_config.access_token_expire_minute)
     token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
     token_schema = Token(access_token=token, token_type="Bearer")
 
@@ -34,7 +35,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
     :return: UserOut pydantic схема с данными текущего пользователя
     """
     try:
-        payload = jwt.decode(credentials.credentials, decode_config.secret_key, algorithms=[decode_config.algorithm])
+        payload = jwt.decode(credentials.credentials, jwt_config.secret_key, algorithms=[jwt_config.jwt_algorithm])
         username: str = payload.get("sub")
         if username is None:
             raise UnauthorizedException
@@ -90,7 +91,7 @@ async def authenticate_user(user: UserBase) -> Token:
     :return: Token pydantic схема с bearer access token
     """
     db_user = await get_user_by_username(user.username)
-    if not is_verify_password(user.password, db_user.password):
+    if not verify_password(user.password, db_user.password):
         raise UnauthorizedException
     token_schema = _generate_token_data(user)
 
