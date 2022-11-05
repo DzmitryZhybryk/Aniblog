@@ -12,7 +12,7 @@ from ..models import User, Role, VerificationCode
 from ..config import database_config, decode_config
 from .schemas import UserRegistration, UserUpdate, RegistrationCode
 from ..utils.email_sender import EmailSender
-from ..utils.verification_code import verification_code
+from ..utils.code_verification import verification_code
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -73,7 +73,7 @@ async def create_initial_user() -> None:
     hashed_password = _get_password_hash("admin")
     initial_user_role = await Role.objects.get(role="admin")
     await User.objects.create(username="admin", password=hashed_password, user_role=initial_user_role,
-                              email="testk@mail.ru")
+                              email="test@mail.ru")
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:

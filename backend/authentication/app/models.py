@@ -5,7 +5,7 @@ from sqlalchemy.sql import func
 
 from .database import database
 
-models = orm.ModelRegistry(database=database)
+models = orm.ModelRegistry(database=database.database_obj)
 
 metadata = sqlalchemy.MetaData()
 
@@ -30,8 +30,9 @@ class User(orm.Model):
         "first_name": orm.String(allow_null=True, min_length=1, max_length=50),
         "last_name": orm.String(allow_null=True, min_length=1, max_length=50),
         "created_at": orm.DateTime(default=func.now()),
+        "updated_at": orm.DateTime(allow_null=True, default=None),
         "birthday": orm.DateTime(allow_null=True),
-        "picture_url": orm.String(allow_null=True, max_length=500, default=None),
+        "photo": orm.String(allow_null=True, max_length=500, default=None),
         "user_role": orm.ForeignKey(Role, on_delete="CASCADE")
     }
 

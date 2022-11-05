@@ -3,18 +3,16 @@ from pathlib import Path
 from pydantic import BaseSettings
 
 BASE_DIR = Path(__file__).parent
-print(BASE_DIR)
 
 
 # DATABASE_PATH = BASE_DIR / "db.sqlite3"
 # DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 
 
-# DATABASE_URL = "postgresql://dzmitry_zhybryk:3050132596@localhost/aniblog_db"
-
-
 class DatabaseConfig(BaseSettings):
+    # database_url: str = DATABASE_URL
     roles: list = {"admin", "moderator", "base_user"}
+
     database_port: int = 6500
     postgres_user: str = "dzmitry_zhybryk"
     postgres_password: str = "3050132596"
