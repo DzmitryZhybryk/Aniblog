@@ -1,5 +1,6 @@
 import aioredis
 
+from aioredis.exceptions import RedisError
 from databases import Database
 
 from .config import database_config
@@ -22,31 +23,50 @@ class DatabaseWorker(Database):
 
 
 class RedisWorker:
-    def __init__(self, url: str, username: str, password: str, db: int):
+    def __init__(self, url: str, password: str, db: int, username: str = None):
         self.url = url
-        self.username = username
         self.password = password
         self.db = db
-        self.connect = aioredis.from_url(self.url, username=self.username, password=self.password, db=self.db)
+        self.username = username
+
+    def get_connect(self):
+        return aioredis.from_url(self.url, username=self.username, password=self.password, db=self.db)
 
     async def set_data(self, key: str, value: str) -> dict:
         try:
-            await self.connect.set(key, value)
-            return {"message": "data was added"}
-        except Exception as ex:
+            await self.get_connect().set(key, value)
+            return {"message": "data hase been added"}
+        except RuntimeError as ex:
+            print(ex)
+        except RedisError as ex:
             print(ex)
         finally:
-            await self.connect.close()
+            await self.get_connect().close()
 
     async def get_data(self, key: str) -> dict:
         try:
-            data = await self.connect.get(key)
+            data = await self.get_connect().get(key)
             return data
-        except Exception as ex:
+        except RuntimeError as ex:
+            print(ex)
+        except RedisError as ex:
             print(ex)
         finally:
-            self.connect.close()
+            await self.get_connect().close()
+
+    async def delete_data(self, key: str) -> dict:
+        try:
+            await self.get_connect().delete(key)
+            return {"message": "data hase been deleted"}
+        except RuntimeError as ex:
+            print(ex)
+        except RedisError as ex:
+            print(ex)
+        finally:
+            self.get_connect().close()
 
 
 database = DatabaseWorker(DATABASE_URL)
-redis_database = RedisWorker(url="redis://localhost", username="admin", password="admin", db=0)
+redis_database = RedisWorker(url=f"{database_config.redis_host}",
+                             password=f"{database_config.redis_password}",
+                             db=f"{database_config.redis_db}")

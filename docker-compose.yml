@@ -13,12 +13,14 @@ services:
 
   cache:
     image: redis
-    restart: always
+    container_name: redis
     ports:
       - '6379:6379'
-    command: redis-server --save 20 1 --loglevel --requirepass 3050132596
+    restart: always
     volumes:
       - cache:/data
+    command: redis-server --requirepass 3050132596
+
 
 volumes:
   postgres-db:
