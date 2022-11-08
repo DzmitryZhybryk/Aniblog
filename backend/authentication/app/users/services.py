@@ -71,7 +71,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 
 
 async def _check_exist_username(username: str):
-    db_user = await User.objects.get(username=username.lower())
+    db_user = await get_user_by_username(username=username.lower())
     if db_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail=f"Account with username {username} already exist")

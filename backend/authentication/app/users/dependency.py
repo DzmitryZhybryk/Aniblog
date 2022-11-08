@@ -20,7 +20,7 @@ def _generate_token_data(user: UserBase) -> Token:
     :param user: pydantic model с данными пользователя
     :return: Token pydantic схема с bearer access token
     """
-    access_token_expires = timedelta(minutes=jwt_config.access_token_expire_minute)
+    access_token_expires = timedelta(minutes=jwt_config.access_token_expire)
     token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
     token_schema = Token(access_token=token, token_type="Bearer")
 

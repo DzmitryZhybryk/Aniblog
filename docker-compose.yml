@@ -1,5 +1,18 @@
 version: '3'
 services:
+  web:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend/authentication/app/:/code/app
+    env_file:
+      - ./backend/authentication/app/.env
+    ports:
+      - 8000:8000
+    depends_on:
+      - postgres
+      - cache
+
   postgres:
     image: postgres
     container_name: postgres

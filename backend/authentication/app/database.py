@@ -6,13 +6,12 @@ from databases import Database
 from .config import database_config
 
 DATABASE_URL = f"postgresql://{database_config.postgres_user}:{database_config.postgres_password}@" \
-               f"{database_config.postgres_hostname}:{database_config.database_port}/{database_config.postgres_db}"
+               f"{database_config.postgres_host}/{database_config.postgres_db}"
 
 
-class DatabaseWorker(Database):
+class DatabaseWorker:
 
     def __init__(self, url: str):
-        super().__init__(url)
         self.database_obj = Database(url)
 
     async def connect_database(self):
@@ -30,7 +29,8 @@ class RedisWorker:
         self.username = username
 
     def get_connect(self):
-        return aioredis.from_url(self.url, username=self.username, password=self.password, db=self.db)
+        return aioredis.from_url(self.url, username=self.username, password=self.password, db=self.db,
+                                 decode_responses=True)
 
     async def set_data(self, key: str, value: str) -> dict:
         try:
