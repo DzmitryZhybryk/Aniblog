@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+from typing import Type
 from jose import jwt
 
 from fastapi import HTTPException, status
@@ -8,9 +9,9 @@ from orm.exceptions import NoMatch
 from sqlite3 import IntegrityError
 
 from ..exception import UnauthorizedException
-from ..models import User, Role, VerificationCode
+from ..models import User, Role
 from ..config import database_config, jwt_config
-from .schemas import UserRegistration, UserUpdate, RegistrationCode
+from .schemas import UserRegistration, UserUpdate
 from ..utils.email_sender import EmailSender
 from ..utils.code_verification import verification_code
 from ..utils.password_verification import hash_password
@@ -70,59 +71,63 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encode_jwt
 
 
-async def _check_exist_username(username: str):
-    db_user = await get_user_by_username(username=username.lower())
+async def _check_is_user_exist(username: str):
+    db_user = await get_user_by_username(username=username)
     if db_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail=f"Account with username {username} already exist")
+    return db_user
 
 
-async def _verify_registration_code(username: str, email: str):
-    registration_code = verification_code.get_verification_code()
-    redis_database.set_data(key=username, value=registration_code)
-    email = EmailSender(email, registration_code)
-    email.send_email()
+async def send_registration_code_to_email(user: UserRegistration):
+    if not await _check_is_user_exist(user.username):
+        registration_code = verification_code.get_verification_code()
+        await redis_database.set_data(key=user.username, value=registration_code)
+        email = EmailSender(recipient=user.email, verification_code=registration_code)
+        email.send_email()
+        return {"message": "Данные отправлены пользователю на email"}
 
 
-async def create_registration_user(user: UserRegistration) -> None:
-    """
-    Функция получает на вход pydantic model c данными нового пользователя и создаёт его в базе данных
+# async def create_registration_user(user: UserRegistration) -> None:
+#     """
+#     Функция получает на вход pydantic model c данными нового пользователя и создаёт его в базе данных
+#
+#     :param user: pydantic model с данными для регистрации нового пользователя
+#     :return: None
+#     """
+#     hashed_password = hash_password(user.password)
+#
+#     try:
+#         if get_user_by_username(username=user.username):
+#             raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+#                                 detail=f"Account with username {user.username} already exist")
+#
+#         new_db_user_role = await Role.objects.get(role="base_user")
+#         new_db_user = await User.objects.create(username=user.username.lower(), password=hashed_password,
+#                                                 user_role=new_db_user_role, email=user.email)
+#
+#     except (UniqueViolationError, IntegrityError) as ex:
+#         raise HTTPException(
+#             status_code=status.HTTP_409_CONFLICT,
+#             detail=f"{ex}: Account already exist"
+#         )
 
-    :param user: pydantic model с данными для регистрации нового пользователя
-    :return: None
-    """
-    hashed_password = hash_password(user.password)
 
-    try:
-        new_db_user_role = await Role.objects.get(role="base_user")
-        new_db_user = await User.objects.create(username=user.username.lower(), password=hashed_password,
-                                                user_role=new_db_user_role, email=user.email)
-
-    except (UniqueViolationError, IntegrityError) as ex:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"{ex}: Account already exist"
-        )
-
-
-async def get_user_by_username(username: str) -> User:
+async def get_user_by_username(username: str, raise_nomatch: bool = False) -> User | None:
     """
     Функция получает на вход имя пользователя, ищет его в базе данных и если находит, возвращает этого пользователя
 
     :param username: имя пользователя которого будем искать в базе данных
+    :param raise_nomatch: если True - рейзит исключение, если пользователь не найден. Если False - возвращает None.
+        По умолчанию False
     :return: объект класса User с данными пользователя из базы данных
     """
     try:
         user: User = await User.objects.get(username=username)
         return user
     except NoMatch:
-        raise UnauthorizedException
-
-
-async def get_user_by_registration_code(code: RegistrationCode):
-    code = await VerificationCode.objects.get(code=code.registration_code)
-    user = await User.objects.get(id=code.user_username)
-    return user
+        if raise_nomatch:
+            raise UnauthorizedException
 
 
 def _is_birthday_exist(db_user: User) -> bool:
@@ -149,7 +154,7 @@ async def update_current_db_user_data(current_user: str, user_info: UserUpdate) 
         if user_info.birthday:
             if _is_birthday_exist(db_user):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail="You can't change your birthday. Contact moderator")
+                                    detail="День рождения можно поменять один раз!")
 
         await db_user.update(username=user_info.username, first_name=user_info.first_name,
                              last_name=user_info.last_name, birthday=user_info.birthday)

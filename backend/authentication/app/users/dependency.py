@@ -3,9 +3,9 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from .schemas import UserBase, UserRegistration, Token, UserOut, TokenData, UserUpdate, RegistrationCode
-from .services import create_registration_user, create_access_token, get_user_by_username, \
-    update_current_db_user_data, get_user_by_registration_code
+from .schemas import UserBase, UserRegistration, Token, UserOut, TokenData, UserUpdate
+from .services import create_access_token, get_user_by_username, \
+    update_current_db_user_data, send_registration_code_to_email
 from ..config import database_config, jwt_config
 from ..exception import UnauthorizedException
 from ..utils.password_verification import verify_password
@@ -73,14 +73,14 @@ async def registration_user(user: UserRegistration) -> None:
     :param user: pydantic model с данными для регистрации нового пользователя
     :return: pydantic model с bearer access token
     """
-    await create_registration_user(user)
+    await send_registration_code_to_email(user)
 
 
-async def confirm_registration_user(verification_code: RegistrationCode) -> Token:
-    user = await get_user_by_registration_code(code=verification_code)
-    token_schema = _generate_token_data(user)
-
-    return token_schema
+# async def confirm_registration_user(verification_code: RegistrationCode) -> Token:
+#     user = await get_user_by_registration_code(code=verification_code)
+#     token_schema = _generate_token_data(user)
+#
+#     return token_schema
 
 
 async def authenticate_user(user: UserBase) -> Token:
@@ -90,7 +90,7 @@ async def authenticate_user(user: UserBase) -> Token:
     :param user: pydantic model с данными для аутентификации пользователя
     :return: Token pydantic схема с bearer access token
     """
-    db_user = await get_user_by_username(user.username)
+    db_user = await get_user_by_username(user.username, raise_nomatch=True)
     if not verify_password(user.password, db_user.password):
         raise UnauthorizedException
     token_schema = _generate_token_data(user)

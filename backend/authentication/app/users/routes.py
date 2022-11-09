@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from .schemas import Token, UserOut, UserUpdate
-from .dependency import registration_user, authenticate_user, get_current_user, RoleRequired, update_current_user, \
-    confirm_registration_user
+from .dependency import registration_user, authenticate_user, get_current_user, RoleRequired, update_current_user
 from ..config import database_config
 
 router = APIRouter()
@@ -14,9 +13,9 @@ async def registration():
     return {"message": "Данные для подвтерждения регистрации отправлены на Ваш Email"}
 
 
-@router.post("/register/confirm/", response_model=Token, tags=["Initialization"])
-async def confirm_registration(token: Token = Depends(confirm_registration_user)):
-    return token
+# @router.post("/register/confirm/", response_model=Token, tags=["Initialization"])
+# async def confirm_registration(token: Token = Depends(confirm_registration_user)):
+#     return token
 
 
 @router.post("/token/", response_model=Token, tags=["Initialization"])

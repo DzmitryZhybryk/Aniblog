@@ -20,7 +20,7 @@ class DatabaseConfig(BaseSettings):
     postgres_host: str = "postgres"
     postgres_hostname: str = "127.0.0.1"
 
-    redis_host: str = "redis"
+    redis_host: str = "redis://redis"
     redis_username: str = "dzmitry_zhybryk"
     redis_password: str = "3050132596"
     redis_db: int = 0

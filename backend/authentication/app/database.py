@@ -1,5 +1,6 @@
 import aioredis
 
+from aioredis import Redis
 from aioredis.exceptions import RedisError
 from databases import Database
 
@@ -27,46 +28,47 @@ class RedisWorker:
         self.password = password
         self.db = db
         self.username = username
+        self._connection: Redis | None = None
 
-    def get_connect(self):
-        return aioredis.from_url(self.url, username=self.username, password=self.password, db=self.db,
-                                 decode_responses=True)
+    def connect(self):
+        self._connection = aioredis.from_url(self.url, username=self.username, password=self.password, db=self.db,
+                                             decode_responses=True)
+
+    async def disconnect(self):
+        assert self._connection
+        await self._connection.close()
 
     async def set_data(self, key: str, value: str) -> dict:
+        assert self._connection
         try:
-            await self.get_connect().set(key, value)
-            return {"message": "data hase been added"}
+            await self._connection.set(key, value)
+            return {"message": "data has been added"}
         except RuntimeError as ex:
             print(ex)
         except RedisError as ex:
             print(ex)
-        finally:
-            await self.get_connect().close()
 
     async def get_data(self, key: str) -> dict:
         try:
-            data = await self.get_connect().get(key)
+            data = await self._connection.get(key)
             return data
         except RuntimeError as ex:
             print(ex)
         except RedisError as ex:
             print(ex)
-        finally:
-            await self.get_connect().close()
 
     async def delete_data(self, key: str) -> dict:
+        assert self._connection
         try:
-            await self.get_connect().delete(key)
-            return {"message": "data hase been deleted"}
+            await self._connection.delete(key)
+            return {"message": "data has been deleted"}
         except RuntimeError as ex:
             print(ex)
         except RedisError as ex:
             print(ex)
-        finally:
-            self.get_connect().close()
 
 
 database = DatabaseWorker(DATABASE_URL)
 redis_database = RedisWorker(url=f"{database_config.redis_host}",
                              password=f"{database_config.redis_password}",
-                             db=f"{database_config.redis_db}")
+                             db=database_config.redis_db)
