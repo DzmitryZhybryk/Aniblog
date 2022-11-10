@@ -42,6 +42,7 @@ class RedisWorker:
         assert self._connection
         try:
             await self._connection.set(key, value)
+            await self._connection.expire(key, database_config.expire_data_time)
             return {"message": "data has been added"}
         except RuntimeError as ex:
             print(ex)

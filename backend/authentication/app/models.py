@@ -1,15 +1,12 @@
 import uuid
 
 import orm
-import sqlalchemy
 
 from sqlalchemy.sql import func
 
 from .database import database
 
 models = orm.ModelRegistry(database=database.database_obj)
-
-metadata = sqlalchemy.MetaData()
 
 
 class Role(orm.Model):
@@ -35,15 +32,6 @@ class User(orm.Model):
         "updated_at": orm.DateTime(allow_null=True, default=None),
         "birthday": orm.DateTime(allow_null=True),
         "photo": orm.String(allow_null=True, max_length=500, default=None),
+        "verified": orm.Boolean(allow_null=False, default=False),
         "user_role": orm.ForeignKey(Role, on_delete="CASCADE")
-    }
-
-
-class VerificationCode(orm.Model):
-    tablename = "verification_codes"
-    registry = models
-    fields = {
-        "id": orm.Integer(primary_key=True),
-        "code": orm.Integer(allow_null=False),
-        "user_username": orm.ForeignKey(User)
     }

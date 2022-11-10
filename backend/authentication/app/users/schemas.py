@@ -1,13 +1,13 @@
 from datetime import datetime
-from pydantic import BaseModel, Field, Required, validator, EmailStr
+from pydantic import BaseModel, Field, Required, validator, EmailStr, constr
 from email_validator import validate_email, EmailNotValidError
 
 
 class UserBase(BaseModel):
     username: str = Field(default=Required, title="Enter your username", min_length=5,
-                          max_length=20)
+                          max_length=20, to_lower=True)
     password: str = Field(default=Required, title="Enter your password", min_length=5,
-                          max_length=50)
+                          max_length=50, to_lower=True)
 
     class Config:
         schema_extra = {
@@ -101,7 +101,3 @@ class UserOut(UserUpdate):
                 "created_at": "2022-09-25 15:41:39.641747"
             }
         }
-
-
-class RegistrationCode(BaseModel):
-    registration_code: int

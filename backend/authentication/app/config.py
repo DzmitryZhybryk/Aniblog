@@ -24,6 +24,7 @@ class DatabaseConfig(BaseSettings):
     redis_username: str = "dzmitry_zhybryk"
     redis_password: str = "3050132596"
     redis_db: int = 0
+    expire_data_time: int = 10800
 
     class Config:
         env_file = "./.env"

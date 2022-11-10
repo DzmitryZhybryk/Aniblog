@@ -1,5 +1,4 @@
 from datetime import timedelta, datetime
-from typing import Type
 from jose import jwt
 
 from fastapi import HTTPException, status
@@ -50,7 +49,7 @@ async def create_initial_user() -> None:
     hashed_password = hash_password("admin")
     initial_user_role = await Role.objects.get(role="admin")
     await User.objects.create(username="admin", password=hashed_password, user_role=initial_user_role,
-                              email="test@mail.ru")
+                              email="test@mail.ru", verified=True)
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
@@ -82,35 +81,35 @@ async def _check_is_user_exist(username: str):
 async def send_registration_code_to_email(user: UserRegistration):
     if not await _check_is_user_exist(user.username):
         registration_code = verification_code.get_verification_code()
-        await redis_database.set_data(key=user.username, value=registration_code)
+        await redis_database.set_data(key=registration_code, value=user.json())
         email = EmailSender(recipient=user.email, verification_code=registration_code)
         email.send_email()
         return {"message": "Данные отправлены пользователю на email"}
 
 
-# async def create_registration_user(user: UserRegistration) -> None:
-#     """
-#     Функция получает на вход pydantic model c данными нового пользователя и создаёт его в базе данных
-#
-#     :param user: pydantic model с данными для регистрации нового пользователя
-#     :return: None
-#     """
-#     hashed_password = hash_password(user.password)
-#
-#     try:
-#         if get_user_by_username(username=user.username):
-#             raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-#                                 detail=f"Account with username {user.username} already exist")
-#
-#         new_db_user_role = await Role.objects.get(role="base_user")
-#         new_db_user = await User.objects.create(username=user.username.lower(), password=hashed_password,
-#                                                 user_role=new_db_user_role, email=user.email)
-#
-#     except (UniqueViolationError, IntegrityError) as ex:
-#         raise HTTPException(
-#             status_code=status.HTTP_409_CONFLICT,
-#             detail=f"{ex}: Account already exist"
-#         )
+async def _get_user_data_from_redis(code: int):
+    user_data = await redis_database.get_data(key=code)
+    if not user_data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Неверный проверочный код")
+    return user_data
+
+
+async def create_registration_user(code: int) -> User:
+    user_data = await _get_user_data_from_redis(code=code)
+
+    user = UserRegistration.parse_raw(user_data)
+    redis_database.delete_data(key=code)
+    hashed_password = hash_password(user.password)
+    try:
+        new_db_user_role = await Role.objects.get(role="base_user")
+        new_db_user = await User.objects.create(username=user.username, password=hashed_password,
+                                                user_role=new_db_user_role, email=user.email, verified=True)
+        return new_db_user
+    except (UniqueViolationError, IntegrityError) as ex:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"{ex}: Account already exist"
+        )
 
 
 async def get_user_by_username(username: str, raise_nomatch: bool = False) -> User | None:

@@ -5,15 +5,16 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from .schemas import UserBase, UserRegistration, Token, UserOut, TokenData, UserUpdate
 from .services import create_access_token, get_user_by_username, \
-    update_current_db_user_data, send_registration_code_to_email
+    update_current_db_user_data, send_registration_code_to_email, create_registration_user
 from ..config import database_config, jwt_config
 from ..exception import UnauthorizedException
 from ..utils.password_verification import verify_password
+from ..models import User
 
 oauth2_scheme = HTTPBearer()
 
 
-def _generate_token_data(user: UserBase) -> Token:
+def _generate_token_data(user: UserBase | User) -> Token:
     """
     Функция для генерации токенов доступа
 
@@ -76,11 +77,11 @@ async def registration_user(user: UserRegistration) -> None:
     await send_registration_code_to_email(user)
 
 
-# async def confirm_registration_user(verification_code: RegistrationCode) -> Token:
-#     user = await get_user_by_registration_code(code=verification_code)
-#     token_schema = _generate_token_data(user)
-#
-#     return token_schema
+async def confirm_registration_user(verification_code: int) -> Token:
+    user = await create_registration_user(code=verification_code)
+    token_schema = _generate_token_data(user)
+
+    return token_schema
 
 
 async def authenticate_user(user: UserBase) -> Token:
