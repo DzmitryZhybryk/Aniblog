@@ -16,7 +16,7 @@ oauth2_scheme = HTTPBearer()
 
 def _generate_token_data(user: UserBase | User) -> Token:
     """
-    Функция для генерации токенов доступа
+    Функция для создания токенов доступа
 
     :param user: pydantic model с данными пользователя
     :return: Token pydantic схема с bearer access token
@@ -64,7 +64,8 @@ class RoleRequired:
 
     def __call__(self, user: UserOut = Depends(get_current_user)):
         if user.user_role not in self.role:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough rights")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="Недостаточно прав для получения доступа к этой странице")
 
 
 async def registration_user(user: UserRegistration) -> None:
@@ -78,6 +79,12 @@ async def registration_user(user: UserRegistration) -> None:
 
 
 async def confirm_registration_user(verification_code: int) -> Token:
+    """
+    Dependency, используется для подтверждения регистрации нового пользователя
+
+    :param verification_code: код подтверждения с электронной почты нового пользователя
+    :return: Toke pydantic schema с токеном доступа и его типом
+    """
     user = await create_registration_user(code=verification_code)
     token_schema = _generate_token_data(user)
 

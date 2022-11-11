@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from .schemas import Token, UserOut, UserUpdate
 from ..config import database_config
-from . import dependency
+from . import dependency, schemas
 
 router = APIRouter()
 
@@ -16,34 +15,34 @@ async def registration() -> dict:
 
 
 @router.post("/register/confirm/",
-             response_model=Token,
+             response_model=schemas.Token,
              tags=["Initialization"])
-async def confirm_registration(token: Token = Depends(dependency.confirm_registration_user)) -> Token:
+async def confirm_registration(token: schemas.Token = Depends(dependency.confirm_registration_user)) -> schemas.Token:
     """Роут для подтверждения регистрации новых пользователей"""
     return token
 
 
 @router.post("/token/",
-             response_model=Token,
+             response_model=schemas.Token,
              tags=["Initialization"])
-async def login(token: Token = Depends(dependency.authenticate_user)) -> Token:
+async def login(token: schemas.Token = Depends(dependency.authenticate_user)) -> schemas.Token:
     """Роут для логина новых пользователей"""
     return token
 
 
 @router.get("/me/",
-            response_model=UserOut,
+            response_model=schemas.UserOut,
             dependencies=[Depends(dependency.RoleRequired(database_config.roles))],
             tags=["User"])
-async def current_user(user: UserOut = Depends(dependency.get_current_user)) -> UserOut:
+async def current_user(user: schemas.UserOut = Depends(dependency.get_current_user)) -> schemas.UserOut:
     """Роут для получения информации о текущем пользователе"""
     return user
 
 
 @router.put("/me/",
-            response_model=UserUpdate,
+            response_model=schemas.UserUpdate,
             dependencies=[Depends(dependency.RoleRequired(database_config.roles))],
             tags=["User"])
-async def current_user_update(user: UserUpdate = Depends(dependency.update_current_user)) -> UserUpdate:
+async def current_user_update(user: schemas.UserUpdate = Depends(dependency.update_current_user)) -> schemas.UserUpdate:
     """Роут для изменения данных текущего пользователя"""
     return user
