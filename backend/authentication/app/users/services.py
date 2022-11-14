@@ -119,6 +119,7 @@ async def get_user_by_username(username: str, raise_nomatch: bool = False) -> Us
     :param raise_nomatch: если True - рейзит исключение, если пользователь не найден. Если False - возвращает None.
         По умолчанию False
     :return: объект класса User с данными пользователя из базы данных
+
     """
     try:
         user: User = await User.objects.get(username=username)
@@ -149,10 +150,9 @@ async def update_current_db_user_data(current_user: str, user_info: UserUpdate) 
     """
     try:
         db_user: User = await get_user_by_username(current_user)
-        if user_info.birthday:
-            if _is_birthday_exist(db_user):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail="День рождения можно поменять один раз!")
+        if user_info.birthday and _is_birthday_exist(db_user):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="День рождения можно поменять один раз!")
 
         await db_user.update(username=user_info.username, first_name=user_info.first_name,
                              last_name=user_info.last_name, birthday=user_info.birthday)

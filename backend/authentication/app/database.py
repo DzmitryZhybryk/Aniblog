@@ -4,6 +4,7 @@ from aioredis import Redis
 from aioredis.exceptions import RedisError
 from databases import Database
 
+from .exception import RedisConnectionError
 from .config import database_config
 
 DATABASE_URL = f"postgresql://{database_config.postgres_user}:{database_config.postgres_password}@" \
@@ -35,11 +36,15 @@ class RedisWorker:
                                              decode_responses=True)
 
     async def disconnect(self):
-        assert self._connection
+        if not self._connection:
+            raise RedisConnectionError
+
         await self._connection.close()
+        self._connection = None
 
     async def set_data(self, key: str, value: str) -> dict:
-        assert self._connection
+        if not self._connection:
+            raise RedisConnectionError
         try:
             await self._connection.set(key, value)
             await self._connection.expire(key, database_config.expire_data_time)
@@ -50,6 +55,9 @@ class RedisWorker:
             print(ex)
 
     async def get_data(self, key: str) -> dict:
+        if not self._connection:
+            raise RedisConnectionError
+
         try:
             data = await self._connection.get(key)
             return data
@@ -59,7 +67,9 @@ class RedisWorker:
             print(ex)
 
     async def delete_data(self, key: str) -> dict:
-        assert self._connection
+        if not self._connection:
+            raise RedisConnectionError
+
         try:
             await self._connection.delete(key)
             return {"message": "data has been deleted"}

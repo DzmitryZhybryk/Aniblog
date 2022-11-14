@@ -22,8 +22,17 @@ def _generate_token_data(user: UserLogin | User) -> Token:
     :return: Token pydantic схема с bearer access token
     """
     access_token_expires = timedelta(minutes=jwt_config.access_token_expire)
-    token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
-    token_schema = Token(access_token=token, token_type="Bearer")
+    refresh_token_expires = timedelta(minutes=jwt_config.refresh_token_expire)
+    access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
+    refresh_token = create_access_token(data={"sub": user.username}, expires_delta=refresh_token_expires)
+    token_schema = Token(access_token=access_token, token_type="Bearer")
+
+    response.set_cookie('access_token', access_token, ACCESS_TOKEN_EXPIRES_IN * 60,
+                        ACCESS_TOKEN_EXPIRES_IN * 60, '/', None, False, True, 'lax')
+    response.set_cookie('refresh_token', refresh_token,
+                        REFRESH_TOKEN_EXPIRES_IN * 60, REFRESH_TOKEN_EXPIRES_IN * 60, '/', None, False, True, 'lax')
+    response.set_cookie('logged_in', 'True', ACCESS_TOKEN_EXPIRES_IN * 60,
+                        ACCESS_TOKEN_EXPIRES_IN * 60, '/', None, False, False, 'lax')
 
     return token_schema
 
