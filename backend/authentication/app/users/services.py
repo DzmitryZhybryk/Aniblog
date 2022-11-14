@@ -78,13 +78,13 @@ async def _check_is_user_exist(username: str):
     return db_user
 
 
-async def send_registration_code_to_email(user: UserRegistration):
+async def send_registration_code_to_email(user: UserRegistration) -> UserRegistration:
     if not await _check_is_user_exist(user.username):
         registration_code = verification_code.get_verification_code()
         await redis_database.set_data(key=registration_code, value=user.json())
         email = EmailSender(recipient=user.email, verification_code=registration_code)
         email.send_email()
-        return {"message": "Данные отправлены пользователю на email"}
+        return user
 
 
 async def _get_user_data_from_redis(code: int):
@@ -96,7 +96,6 @@ async def _get_user_data_from_redis(code: int):
 
 async def create_registration_user(code: int) -> User:
     user_data = await _get_user_data_from_redis(code=code)
-
     user = UserRegistration.parse_raw(user_data)
     redis_database.delete_data(key=code)
     hashed_password = hash_password(user.password)

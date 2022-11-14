@@ -3,7 +3,7 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from .schemas import UserBase, UserRegistration, Token, UserOut, TokenData, UserUpdate
+from .schemas import UserLogin, UserRegistration, Token, UserOut, TokenData, UserUpdate, UserRegistrationResponse
 from .services import create_access_token, get_user_by_username, \
     update_current_db_user_data, send_registration_code_to_email, create_registration_user
 from ..config import database_config, jwt_config
@@ -14,7 +14,7 @@ from ..models import User
 oauth2_scheme = HTTPBearer()
 
 
-def _generate_token_data(user: UserBase | User) -> Token:
+def _generate_token_data(user: UserLogin | User) -> Token:
     """
     Функция для создания токенов доступа
 
@@ -68,7 +68,7 @@ class RoleRequired:
                                 detail="Недостаточно прав для получения доступа к этой странице")
 
 
-async def registration_user(user: UserRegistration) -> None:
+async def registration_user(user: UserRegistration) -> UserRegistrationResponse:
     """
     Dependency, используется для регистрации новых пользователей
 
@@ -76,6 +76,8 @@ async def registration_user(user: UserRegistration) -> None:
     :return: pydantic model с bearer access token
     """
     await send_registration_code_to_email(user)
+    user_response_data = UserRegistrationResponse(username=user.username, email=user.email)
+    return user_response_data
 
 
 async def confirm_registration_user(verification_code: int) -> Token:
@@ -91,7 +93,7 @@ async def confirm_registration_user(verification_code: int) -> Token:
     return token_schema
 
 
-async def authenticate_user(user: UserBase) -> Token:
+async def authenticate_user(user: UserLogin) -> Token:
     """
     Dependency, используется для аутентификации новых пользователей
 
