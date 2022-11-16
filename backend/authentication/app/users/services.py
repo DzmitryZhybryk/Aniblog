@@ -1,6 +1,7 @@
 from datetime import timedelta, datetime
 from jose import jwt, JWTError
 from dataclasses import dataclass
+from time import time
 
 from fastapi import HTTPException, status
 
@@ -9,7 +10,7 @@ from orm.exceptions import NoMatch
 from sqlite3 import IntegrityError
 
 from ..exception import UnauthorizedException
-from ..models import User, Role
+from ..models import User, Role, RefreshToken
 from ..config import jwt_config, database_config
 from .schemas import UserRegistration, UserUpdate, UserLogin, Token, UserRegistrationResponse, TokenData
 from ..utils.email_sender import EmailSender
@@ -27,6 +28,10 @@ class ValidatedUser:
 
 class UserAuthentication:
 
+    def __init__(self):
+        self._user_model = User
+        self._token_model = RefreshToken
+
     async def send_registration_code_to_email(self, user: UserRegistration) -> UserRegistration:
         registration_code = verification_code.get_verification_code()
         await redis_database.set_data(key=registration_code, value=user.json())
@@ -41,7 +46,7 @@ class UserAuthentication:
 
         return user_data
 
-    def _create_access_token(self, data: dict, expires_delta: timedelta | None = None) -> str:
+    def _create_access_token(self, data: dict, expires_delta: timedelta) -> str:
         """
         Функция для создания токена доступа
 
@@ -50,16 +55,17 @@ class UserAuthentication:
         :return: access token
         """
         to_encode = data.copy()
-        if expires_delta:
-            expire = datetime.utcnow() + expires_delta
-        else:
-            expire = datetime.utcnow() + timedelta(minutes=jwt_config.access_token_expire)
+        expire = datetime.utcnow() + expires_delta
 
         to_encode.update({"exp": expire})
         encode_jwt = jwt.encode(to_encode, jwt_config.secret_key, algorithm=jwt_config.jwt_algorithm)
         return encode_jwt
 
-    def _generate_token_data(self, user: UserLogin | User) -> Token:
+    async def _add_refresh_token_to_db(self, username: str, refresh_token: str):
+        user_db = await self._user_model.objects.get(username=username)
+        await self._token_model.objects.create(token=refresh_token, user_id=user_db)
+
+    async def _generate_token_data(self, user: UserLogin | User) -> Token:
         """
         Функция для создания токенов доступа
 
@@ -70,6 +76,7 @@ class UserAuthentication:
         refresh_token_expires = timedelta(minutes=jwt_config.refresh_token_expire)
         access_token = self._create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
         refresh_token = self._create_access_token(data={"sub": user.username}, expires_delta=refresh_token_expires)
+        await self._add_refresh_token_to_db(username=user.username, refresh_token=refresh_token)
         token_schema = Token(access_token=access_token, token_type="Bearer")
 
         return token_schema
@@ -82,7 +89,7 @@ class UserAuthentication:
 
     async def validate_code(self, code: int) -> ValidatedUser:
         user_info = await self._get_user_by_validation_code(code=code)
-        token = self._generate_token_data(user=user_info)
+        token = await self._generate_token_data(user=user_info)
         return ValidatedUser(user=user_info, token=token)
 
     async def authenticate(self, db_user: User, user: UserLogin) -> Token:
@@ -92,7 +99,7 @@ class UserAuthentication:
         if not verify_password(user.password, db_user.password):
             raise UnauthorizedException
 
-        token_schema = self._generate_token_data(user)
+        token_schema = await self._generate_token_data(user)
         return token_schema
 
     def decode_token(self, token: str) -> TokenData:
@@ -101,14 +108,20 @@ class UserAuthentication:
             username: str = payload.get("sub")
             if username is None:
                 raise UnauthorizedException
+
+            if payload.get("exp") < int(time()):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+
             return TokenData(username=username)
         except JWTError:
             raise UnauthorizedException
 
 
 class UserStorage:
-    _user_model = User
-    _role_model = Role
+
+    def __init__(self):
+        self._user_model = User
+        self._role_model = Role
 
     async def has_users(self) -> bool:
         """
@@ -130,26 +143,24 @@ class UserStorage:
 
     async def create_initial_roles(self) -> None:
         """Функция для создания ролей пользователей в базе данных"""
-        if await self.has_roles():
-            return None
-        for role in database_config.roles:
-            await self._role_model.objects.create(name=role)
+        if not await self.has_roles():
+            for role in database_config.roles:
+                await self._role_model.objects.create(role=role)
 
     async def create_initial_user(self) -> None:
         """Функция для создания первого пользователя при запуске приложения"""
-        if await self.has_users():
-            return None
-
         if not await self.has_roles():
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Roles not found")
 
-        hashed_password = hash_password("admin")
-        initial_user_role = await self._role_model.objects.get(role="admin")
-        await self._user_model.objects.create(username="admin", password=hashed_password, user_role=initial_user_role,
-                                              email="test@mail.ru", verified=True)
+        if not await self.has_users():
+            hashed_password = hash_password("admin")
+            initial_user_role = await self._role_model.objects.get(role="admin")
+            await self._user_model.objects.create(username="admin", password=hashed_password,
+                                                  user_role=initial_user_role,
+                                                  email="test@mail.ru")
 
     async def _get_db_user_by_username(self, username: str) -> User:
-        user: User = await User.objects.get(username=username)
+        user: User = await self._user_model.objects.get(username=username)
         return user
 
     async def get_user_by_username(self, username: str, raise_nomatch: bool = False) -> User | None:
@@ -199,7 +210,8 @@ class UserStorage:
                 detail=f"{ex}: Account already exist"
             )
 
-    def _is_birthday_exist(self, db_user: User) -> bool:
+    @staticmethod
+    def _is_birthday_exist(db_user: User) -> bool:
         """
         Функция проверяет, заполнено ли поле birthday в базе данных
 
@@ -213,7 +225,6 @@ class UserStorage:
         """
         Функция обновляет данные текущего пользователя в базе данных
 
-        :param current_user: имя текущего пользователя
         :param user_info: UserUpdate pydantic схема с данными, которые надо обновить в базе данных
         :return: объект класса User с обновленными данными пользователя из базы данных
         """
@@ -229,31 +240,31 @@ class UserStorage:
             raise UnauthorizedException
 
 
-async def login(user: UserLogin) -> Token:
-    authentication = UserAuthentication()
-    storage = UserStorage()
-    db_user = await storage.get_user_by_username(user.username, raise_nomatch=True)
-    token_schema = await authentication.authenticate(db_user, user)
-    return token_schema
+class UserServices:
+
+    def __init__(self):
+        self._authentication = UserAuthentication()
+        self._storage = UserStorage()
+
+    async def login(self, user: UserLogin) -> Token:
+        db_user = await self._storage.get_user_by_username(user.username, raise_nomatch=True)
+        token_schema = await self._authentication.authenticate(db_user, user)
+        return token_schema
+
+    async def validate_user_registration(self, code: int) -> Token:
+        validated_user = await self._authentication.validate_code(code)
+        await self._storage.create(validated_user.user)
+        return validated_user.token
+
+    async def registrate(self, user: UserRegistration) -> UserRegistrationResponse:
+        await self._authentication.send_registration_code_to_email(user)
+        user_response_data = UserRegistrationResponse(username=user.username, email=user.email)
+        return user_response_data
+
+    async def update_current_user(self, db_user: User, user_info: UserUpdate) -> UserUpdate:
+        updated_user = await self._storage.update(db_user, user_info)
+        updated_user_schema = UserUpdate.from_orm(updated_user)
+        return updated_user_schema
 
 
-async def validate_user_registration(code: int) -> Token:
-    authentication = UserAuthentication()
-    storage = UserStorage()
-    validated_user = await authentication.validate_code(code)
-    await storage.create(validated_user.user)
-    return validated_user.token
-
-
-async def registrate(user: UserRegistration) -> UserRegistrationResponse:
-    authentication = UserAuthentication()
-    await authentication.send_registration_code_to_email(user)
-    user_response_data = UserRegistrationResponse(username=user.username, email=user.email)
-    return user_response_data
-
-
-async def update_current_user(db_user: User, user_info: UserUpdate) -> UserUpdate:
-    storage = UserStorage()
-    updated_user = await storage.update(db_user, user_info)
-    updated_user_schema = UserUpdate.from_orm(updated_user)
-    return updated_user_schema
+user_services = UserServices()

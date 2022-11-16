@@ -37,7 +37,7 @@ class User(orm.Model):
     }
 
 
-class Token(orm.Model):
+class RefreshToken(orm.Model):
     tablename = "tokens"
     registry = models
     fields = {

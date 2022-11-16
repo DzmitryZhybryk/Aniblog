@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from ..config import database_config
 from . import dependency, schemas
 from ..models import User
-from .services import login, validate_user_registration, registrate, update_current_user
+from .services import user_services
 
 router = APIRouter()
 
@@ -11,7 +11,7 @@ router = APIRouter()
 @router.post("/register/", tags=["Initialization"], response_model=schemas.UserRegistrationResponse)
 async def registration(user: schemas.UserRegistration):
     """Роут для регистрации новых пользователей"""
-    response = await registrate(user)
+    response = await user_services.registrate(user)
     return response
 
 
@@ -20,7 +20,7 @@ async def registration(user: schemas.UserRegistration):
              tags=["Initialization"])
 async def confirm_registration(code: int):
     """Роут для подтверждения регистрации новых пользователей"""
-    token = await validate_user_registration(code)
+    token = await user_services.validate_user_registration(code)
     return token
 
 
@@ -29,7 +29,7 @@ async def confirm_registration(code: int):
              tags=["Initialization"])
 async def login_user(user: schemas.UserLogin):
     """Роут для логина пользователей"""
-    token = await login(user)
+    token = await user_services.login(user)
     return token
 
 
@@ -51,5 +51,5 @@ async def current_user(user: User = Depends(dependency.get_current_user)):
             tags=["User"])
 async def current_user_update(user_data: schemas.UserUpdate, user: User = Depends(dependency.get_current_user)):
     """Роут для изменения данных текущего пользователя"""
-    updated_user = await update_current_user(user, user_data)
+    updated_user = await user_services.update_current_user(user, user_data)
     return updated_user
