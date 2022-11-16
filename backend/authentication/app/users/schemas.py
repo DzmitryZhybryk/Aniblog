@@ -6,7 +6,6 @@ from humps import camelize
 
 
 class UserLogin(BaseModel):
-    """Класс для валидации входных данных при логине пользователя"""
     username: str = Field(default=Required, min_length=5, max_length=20)
     password: str = Field(default=Required, min_length=5, max_length=50)
 
@@ -75,6 +74,7 @@ class UserUpdate(BaseModel):
     username: str | None
     first_name: str | None
     last_name: str | None
+    nickname: str | None
     email: EmailStr | None
     birthday: datetime | None
 

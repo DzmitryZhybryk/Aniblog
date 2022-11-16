@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).parent
 
 class DatabaseConfig(BaseSettings):
     # database_url: str = DATABASE_URL
-    roles: list = {"admin", "moderator", "base_user"}
+    roles: set = {"admin", "moderator", "base_user"}
 
     database_port: int = 6500
     postgres_user: str = "dzmitry_zhybryk"

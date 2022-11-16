@@ -10,7 +10,7 @@ from fastapi.encoders import jsonable_encoder
 from .users.routes import router as user_routes
 from .database import database, redis_database
 from .models import models
-from .users.services import has_db_user, create_initial_user, has_db_roles, create_users_roles
+from .users.services import UserStorage
 from .exception import UnauthorizedException
 
 parser = ArgumentParser(description="Authentication service")
@@ -60,13 +60,9 @@ async def on_startup() -> None:
     await database.connect_database()
     redis_database.connect()
 
-    db_has_roles = await has_db_roles()
-    if not db_has_roles:
-        await create_users_roles()
-
-    db_has_user = await has_db_user()
-    if not db_has_user:
-        await create_initial_user()
+    storage = UserStorage()
+    await storage.create_initial_roles()
+    await storage.create_initial_user()
 
 
 @app.on_event("shutdown")
