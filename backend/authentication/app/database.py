@@ -45,10 +45,27 @@ class RedisWorker:
     async def set_data(self, key: str, value: str) -> dict:
         if not self._connection:
             raise RedisConnectionError
+
         try:
             await self._connection.set(key, value)
             await self._connection.expire(key, database_config.expire_data_time)
             return {"message": "data has been added"}
+        except RuntimeError as ex:
+            print(ex)
+        except RedisError as ex:
+            print(ex)
+
+    async def set_hset_data(self, key: str, **kwargs):
+        print("###########################")
+        if not self._connection:
+            raise RedisConnectionError
+
+        print(key)
+        print(kwargs.items())
+        try:
+            for item, value in kwargs.items():
+                await self._connection.hset(key, item, value)
+                return {"message": "data has been added"}
         except RuntimeError as ex:
             print(ex)
         except RedisError as ex:

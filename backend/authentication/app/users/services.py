@@ -10,14 +10,14 @@ from orm.exceptions import NoMatch
 from sqlite3 import IntegrityError
 
 from ..exception import UnauthorizedException
-from ..models import User, Role, RefreshToken
+from ..models import User, Role
 from ..config import jwt_config, database_config
 from .schemas import UserRegistration, UserUpdate, UserLogin, Token, UserRegistrationResponse, TokenData
 from ..utils.email_sender import EmailSender
 from ..utils.code_verification import verification_code
-from ..utils.password_verification import hash_password
+# from ..utils.password_verification import hash_password
 from ..database import redis_database
-from ..utils.password_verification import verify_password
+# from ..utils.password_verification import verify_password
 
 
 @dataclass
@@ -27,10 +27,6 @@ class ValidatedUser:
 
 
 class UserAuthentication:
-
-    def __init__(self):
-        self._user_model = User
-        self._token_model = RefreshToken
 
     async def send_registration_code_to_email(self, user: UserRegistration) -> UserRegistration:
         registration_code = verification_code.get_verification_code()
@@ -61,9 +57,8 @@ class UserAuthentication:
         encode_jwt = jwt.encode(to_encode, jwt_config.secret_key, algorithm=jwt_config.jwt_algorithm)
         return encode_jwt
 
-    async def _add_refresh_token_to_db(self, username: str, refresh_token: str):
-        user_db = await self._user_model.objects.get(username=username)
-        await self._token_model.objects.create(token=refresh_token, user_id=user_db)
+    async def _save_refresh_token_to_redis(self, username: str, refresh_token: str):
+        await redis_database.set_data(key=username, value=refresh_token)
 
     async def _generate_token_data(self, user: UserLogin | User) -> Token:
         """
@@ -76,15 +71,15 @@ class UserAuthentication:
         refresh_token_expires = timedelta(minutes=jwt_config.refresh_token_expire)
         access_token = self._create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
         refresh_token = self._create_access_token(data={"sub": user.username}, expires_delta=refresh_token_expires)
-        await self._add_refresh_token_to_db(username=user.username, refresh_token=refresh_token)
-        token_schema = Token(access_token=access_token, token_type="Bearer")
+        await self._save_refresh_token_to_redis(username=user.username, refresh_token=refresh_token)
+        token_schema = Token(access_token=access_token, refresh_token=refresh_token, token_type="Bearer")
 
         return token_schema
 
     async def _get_user_by_validation_code(self, code: int) -> UserRegistration:
         user_data = await self._get_user_data_from_redis(code=code)
         user = UserRegistration.parse_raw(user_data)
-        redis_database.delete_data(key=code)
+        await redis_database.delete_data(key=code)
         return user
 
     async def validate_code(self, code: int) -> ValidatedUser:
@@ -96,8 +91,8 @@ class UserAuthentication:
         """
         Функция для аутентификации пользователя
         """
-        if not verify_password(user.password, db_user.password):
-            raise UnauthorizedException
+        # if not verify_password(user.password, db_user.password):
+        #     raise UnauthorizedException
 
         token_schema = await self._generate_token_data(user)
         return token_schema
@@ -111,7 +106,6 @@ class UserAuthentication:
 
             if payload.get("exp") < int(time()):
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
-
             return TokenData(username=username)
         except JWTError:
             raise UnauthorizedException
@@ -153,9 +147,9 @@ class UserStorage:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Roles not found")
 
         if not await self.has_users():
-            hashed_password = hash_password("admin")
+            # hashed_password = hash_password("admin")
             initial_user_role = await self._role_model.objects.get(role="admin")
-            await self._user_model.objects.create(username="admin", password=hashed_password,
+            await self._user_model.objects.create(username="admin", password="123",
                                                   user_role=initial_user_role,
                                                   email="test@mail.ru")
 
@@ -198,10 +192,10 @@ class UserStorage:
         return db_user
 
     async def create(self, user_data: UserRegistration) -> User:
-        hashed_password = hash_password(user_data.password)
+        # hashed_password = hash_password(user_data.password)
         try:
             new_db_user_role = await self._role_model.objects.get(role="base_user")
-            new_db_user = await self._user_model.objects.create(username=user_data.username, password=hashed_password,
+            new_db_user = await self._user_model.objects.create(username=user_data.username, password="123",
                                                                 user_role=new_db_user_role, email=user_data.email)
             return new_db_user
         except (UniqueViolationError, IntegrityError) as ex:
@@ -250,6 +244,9 @@ class UserServices:
         db_user = await self._storage.get_user_by_username(user.username, raise_nomatch=True)
         token_schema = await self._authentication.authenticate(db_user, user)
         return token_schema
+
+    async def refresh_token(self):
+        pass
 
     async def validate_user_registration(self, code: int) -> Token:
         validated_user = await self._authentication.validate_code(code)

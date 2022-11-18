@@ -5,25 +5,16 @@ from ..exception import UnauthorizedException
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def hash_password(password: str) -> str:
-    """
-    Функция хэширует полученные данные
+class Password:
 
-    :param password: str object для хэширования
-    :return: str object с хэшированными данными
-    """
-    return pwd_context.hash(password)
+    def __init__(self, password: str):
+        self._password = password
 
+    def hash_password(self) -> str:
+        return pwd_context.hash(self._password)
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Функция для верификации пароля
-
-    :param plain_password: пароль из формы
-    :param hashed_password: пароль из базы данных
-    :return: True - если пароли совпадают и False - если нет
-    """
-    is_verify = pwd_context.verify(plain_password, hashed_password)
-    if not is_verify:
-        raise UnauthorizedException
-    return is_verify
+    def verify_password(self, hashed_password: str) -> bool:
+        is_verify = pwd_context.verify(self._password, hashed_password)
+        if not is_verify:
+            raise UnauthorizedException
+        return is_verify

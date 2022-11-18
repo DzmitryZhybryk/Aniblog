@@ -3,7 +3,7 @@ from typing import List
 from fastapi_jwt_auth import AuthJWT
 from pydantic import BaseModel
 
-from .config import jwt_config
+from ..config import jwt_config
 
 
 class Settings(BaseModel):

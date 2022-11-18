@@ -12,6 +12,7 @@ from .database import database, redis_database
 from .models import models
 from .users.services import UserStorage
 from .exception import UnauthorizedException
+from .initialization.routes import router as init_routers
 
 parser = ArgumentParser(description="Authentication service")
 
@@ -52,6 +53,7 @@ app.add_middleware(
 )
 
 app.include_router(user_routes, prefix="/api/auth")
+app.include_router(init_routers, prefix="/api/auth")
 
 
 @app.on_event("startup")
@@ -68,7 +70,7 @@ async def on_startup() -> None:
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
     await database.disconnect_database()
-    redis_database.disconnect()
+    await redis_database.disconnect()
 
 
 @app.exception_handler(UnauthorizedException)

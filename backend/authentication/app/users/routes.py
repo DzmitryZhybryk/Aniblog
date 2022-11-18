@@ -33,6 +33,15 @@ async def login_user(user: schemas.UserLogin):
     return token
 
 
+@router.get("/refresh/",
+            response_model=schemas.Token,
+            tags=["Initialization"])
+async def refresh_token(user: schemas.UserLogin):
+    """Роут для обновления токена пользователя"""
+    token = await user_services.refresh_token(user)
+    return token
+
+
 @router.get("/me/",
             response_model=schemas.UserOut,
             dependencies=[Depends(dependency.RoleRequired(database_config.roles))],
