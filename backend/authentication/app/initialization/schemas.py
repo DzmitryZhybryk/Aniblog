@@ -85,18 +85,3 @@ class Token(BaseModel):
         }
         alias_generator = camelize
         allow_population_by_field_name = True
-
-
-class TokenData(BaseModel):
-    username: str | None = None
-    role: str | None = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "username": "admin",
-                "role": "base_user"
-            }
-        }
-        alias_generator = camelize
-        allow_population_by_field_name = True

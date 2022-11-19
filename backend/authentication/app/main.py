@@ -7,12 +7,12 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 
-# from .users.routes import router as user_routes
 from .database import database, redis_database
 from .models import models
 from .initialization.services import UserStorage
 from .exception import UnauthorizedException
 from .initialization.routes import router as init_routers
+from .users.routes import router as user_routes
 
 parser = ArgumentParser(description="Authentication service")
 
@@ -52,7 +52,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# app.include_router(user_routes, prefix="/api/auth")
+app.include_router(user_routes, prefix="/api/auth")
 app.include_router(init_routers, prefix="/api/auth")
 
 

@@ -1,6 +1,5 @@
 from datetime import timedelta, datetime
 from jose import jwt, JWTError
-from dataclasses import dataclass
 from time import time
 
 from fastapi import HTTPException, status
@@ -12,7 +11,7 @@ from sqlite3 import IntegrityError
 from ..exception import UnauthorizedException
 from ..models import User, Role
 from ..config import jwt_config, database_config
-from .schemas import UserRegistration, UserLogin, Token, TokenData
+from .schemas import UserRegistration, UserLogin, Token
 from ..utils.email_sender import EmailSender
 from ..utils.code_verification import verification_code
 from ..utils.password_verification import Password
@@ -72,19 +71,6 @@ class UserInitialization:
 
         token_schema = await self.generate_token_data(db_user)
         return token_schema
-
-    # def decode_token(self, token: str) -> TokenData:
-    #     try:
-    #         payload = jwt.decode(token, jwt_config.secret_key, algorithms=[jwt_config.jwt_algorithm])
-    #         username: str = payload.get("sub")
-    #         if username is None:
-    #             raise UnauthorizedException
-    #
-    #         if payload.get("exp") < int(time()):
-    #             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
-    #         return TokenData(username=username)
-    #     except JWTError:
-    #         raise UnauthorizedException
 
     @staticmethod
     def _decode_refresh_token(refresh_token: str):

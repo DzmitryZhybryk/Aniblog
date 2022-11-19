@@ -1,64 +1,27 @@
-# from fastapi import APIRouter, Depends
-#
-# from ..config import database_config
-# from . import dependency, schemas
-# from ..models import User
-# from .services import user_services
-#
-# router = APIRouter()
-#
-#
-# @router.post("/register/", tags=["Initialization"], response_model=schemas.UserRegistrationResponse)
-# async def registration(user: schemas.UserRegistration):
-#     """Роут для регистрации новых пользователей"""
-#     response = await user_services.registrate(user)
-#     return response
-#
-#
-# @router.post("/register/confirm/",
-#              response_model=schemas.Token,
-#              tags=["Initialization"])
-# async def confirm_registration(code: int):
-#     """Роут для подтверждения регистрации новых пользователей"""
-#     token = await user_services.validate_user_registration(code)
-#     return token
-#
-#
-# @router.post("/token/",
-#              response_model=schemas.Token,
-#              tags=["Initialization"])
-# async def login_user(user: schemas.UserLogin):
-#     """Роут для логина пользователей"""
-#     token = await user_services.login(user)
-#     return token
-#
-#
-# @router.get("/refresh/",
-#             response_model=schemas.Token,
-#             tags=["Initialization"])
-# async def refresh_token(user: schemas.UserLogin):
-#     """Роут для обновления токена пользователя"""
-#     token = await user_services.refresh_token(user)
-#     return token
-#
-#
-# @router.get("/me/",
-#             response_model=schemas.UserOut,
-#             dependencies=[Depends(dependency.RoleRequired(database_config.roles))],
-#             tags=["User"])
-# async def current_user(user: User = Depends(dependency.get_current_user)):
-#     """Роут для получения информации о текущем пользователе"""
-#     return schemas.UserOut(
-#         username=user.username, first_name=user.first_name, last_name=user.last_name, nickname=user.nickname,
-#         email=user.email, birthday=user.birthday, user_role=user.user_role.role, created_at=user.created_at
-#     )
-#
-#
+from fastapi import APIRouter, Depends
+
+from ..config import database_config
+from .schemas import UserOut
+from .dependency import user_services, RoleRequired
+from ..models import User
+
+router = APIRouter()
+
+
+@router.get("/me/",
+            response_model=UserOut, dependencies=[Depends(RoleRequired(database_config.roles))], tags=["User"])
+async def current_user(user: User = Depends(user_services.get_current_user)):
+    """Роут для получения информации о текущем пользователе"""
+    return UserOut(
+        username=user.username, first_name=user.first_name, last_name=user.last_name, nickname=user.nickname,
+        email=user.email, birthday=user.birthday, user_role=user.user_role.role, created_at=user.created_at
+    )
+
 # @router.put("/me/",
-#             response_model=schemas.UserUpdate,
+#             response_model=UserUpdate,
 #             dependencies=[Depends(dependency.RoleRequired(database_config.roles))],
 #             tags=["User"])
-# async def current_user_update(user_data: schemas.UserUpdate, user: User = Depends(dependency.get_current_user)):
+# async def current_user_update(user_data: UserUpdate, user: User = Depends(dependency.get_current_user)):
 #     """Роут для изменения данных текущего пользователя"""
 #     updated_user = await user_services.update_current_user(user, user_data)
 #     return updated_user
