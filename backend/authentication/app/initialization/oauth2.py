@@ -24,8 +24,9 @@ class InitializationServices:
         token_schema = await self._initialization.authenticate(db_user=db_user, user=user)
         return token_schema
 
-    async def get_refresh_token(self, current_refresh_token: str) -> Token:
-        token_schema = await self._initialization.compare_refresh_token(current_refresh_token=current_refresh_token)
+    async def get_new_access_token(self, current_refresh_token: str) -> Token:
+        new_access_token = await self._initialization.compare_refresh_token(current_refresh_token=current_refresh_token)
+        token_schema: Token = Token(access_token=new_access_token, refresh_token=current_refresh_token)
         return token_schema
 
 

@@ -45,15 +45,14 @@ class UserInitialization:
         :param user: pydantic model с данными пользователя
         :return: Token pydantic схема с bearer access token
         """
-        access_token_expires = timedelta(minutes=jwt_config.access_token_expire)
-        refresh_token_expires = timedelta(minutes=jwt_config.refresh_token_expire)
+        access_token_expires = datetime.utcnow() + timedelta(minutes=jwt_config.access_token_expire)
+        refresh_token_expires = datetime.utcnow() + timedelta(minutes=jwt_config.refresh_token_expire)
+        await user.user_role.load()
         access_token = self._create_access_token(
-            data={"sub": user.username, "role": user.role, "exp": access_token_expires})
-        refresh_token = self._create_access_token(
-            data={"sub": user.username, "role": user.role, "exp": refresh_token_expires})
-
-        await redis_database.set_hset_data(key=refresh_token, username=user.username, role=user.role)
-        token_schema = Token(access_token=access_token, refresh_token=refresh_token, token_type="Bearer")
+            data={"sub": user.username, "role": user.user_role.role, "exp": access_token_expires})
+        refresh_token = self._create_access_token(data={"exp": refresh_token_expires})
+        await redis_database.set_hset_data(key=refresh_token, username=user.username, role=user.user_role.role)
+        token_schema = Token(access_token=access_token, refresh_token=refresh_token)
 
         return token_schema
 
@@ -87,16 +86,30 @@ class UserInitialization:
     #     except JWTError:
     #         raise UnauthorizedException
 
-    async def compare_refresh_token(self, current_refresh_token: str):
-        access_token_expires = timedelta(minutes=jwt_config.access_token_expire)
-        redis_refresh_token = await redis_database.get_data(key=current_refresh_token)
-        refresh_token_data = TokenData.parse_raw(redis_refresh_token)
-        if not redis_refresh_token:
+    @staticmethod
+    def _decode_refresh_token(refresh_token: str):
+        try:
+            payload = jwt.decode(refresh_token, jwt_config.secret_key, algorithms=[jwt_config.jwt_algorithm])
+            if payload.get("exp") < int(time()):
+                raise UnauthorizedException
+
+            return refresh_token
+        except JWTError:
             raise UnauthorizedException
 
-        access_token = self._create_access_token(
-            data={"sub": refresh_token_data.username, "role": refresh_token_data.role, "exp": access_token_expires})
-        return access_token
+    async def compare_refresh_token(self, current_refresh_token: str):
+        access_token_expires = datetime.utcnow() + timedelta(minutes=jwt_config.access_token_expire)
+        if not self._decode_refresh_token(refresh_token=current_refresh_token):
+            raise UnauthorizedException
+
+        current_user_username = await redis_database.hget_data(name=current_refresh_token, key="username")
+        current_user_role = await redis_database.hget_data(name=current_refresh_token, key="role")
+        if not current_user_username or not current_user_role:
+            raise UnauthorizedException
+
+        new_access_token = self._create_access_token(
+            data={"sub": current_user_username, "role": current_user_role, "exp": access_token_expires})
+        return new_access_token
 
 
 class UserStorage:

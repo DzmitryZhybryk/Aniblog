@@ -56,16 +56,12 @@ class RedisWorker:
             print(ex)
 
     async def set_hset_data(self, key: str, **kwargs):
-        print("###########################")
         if not self._connection:
             raise RedisConnectionError
 
-        print(key)
-        print(kwargs.items())
         try:
             for item, value in kwargs.items():
                 await self._connection.hset(key, item, value)
-                return {"message": "data has been added"}
         except RuntimeError as ex:
             print(ex)
         except RedisError as ex:
@@ -77,6 +73,18 @@ class RedisWorker:
 
         try:
             data = await self._connection.get(key)
+            return data
+        except RuntimeError as ex:
+            print(ex)
+        except RedisError as ex:
+            print(ex)
+
+    async def hget_data(self, name: str, key: str):
+        if not self._connection:
+            raise RedisConnectionError
+
+        try:
+            data = await self._connection.hget(name=name, key=key)
             return data
         except RuntimeError as ex:
             print(ex)
