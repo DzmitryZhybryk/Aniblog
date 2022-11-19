@@ -23,7 +23,8 @@ class UserInitialization:
     @staticmethod
     async def send_registration_code_to_email(user: UserRegistration) -> str:
         registration_code = verification_code.get_verification_code()
-        await redis_database.set_data(key=registration_code, value=user.json())
+        await redis_database.set_data(key=registration_code, value=user.json(),
+                                      expire=database_config.expire_verification_code_time)
         email = EmailSender(recipient=user.email, verification_code=registration_code)
         email.send_email()
         return f"Данные для продолжения регистрации были отправлены на почту {user.email}"
@@ -50,7 +51,8 @@ class UserInitialization:
         access_token = self._create_access_token(
             data={"sub": user.username, "role": user.user_role.role, "exp": access_token_expires})
         refresh_token = self._create_access_token(data={"exp": refresh_token_expires})
-        await redis_database.set_hset_data(key=refresh_token, username=user.username, role=user.user_role.role)
+        await redis_database.hset_data(key=refresh_token, expire=jwt_config.refresh_token_expire,
+                                       username=user.username, role=user.user_role.role)
         token_schema = Token(access_token=access_token, refresh_token=refresh_token)
 
         return token_schema
