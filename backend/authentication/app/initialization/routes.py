@@ -1,34 +1,44 @@
+"""
+Модуль хранит в себе роуты, которые используются для инициализации пользователей
+
+"""
 from fastapi import APIRouter
 
-from . import schemas
+from .schemas import UserRegistrationResponse, UserRegistration, Token, UserLogin
 from .oauth2 import worker
 
 router = APIRouter()
 
 
-@router.post("/register/", tags=["Initialization"], response_model=schemas.UserRegistrationResponse)
-async def registration(user: schemas.UserRegistration) -> schemas.UserRegistrationResponse:
+@router.post("/register/", tags=["Initialization"], response_model=UserRegistrationResponse)
+async def registration(user: UserRegistration) -> UserRegistrationResponse:
     """Роут для регистрации новых пользователей"""
-    response: schemas.UserRegistrationResponse = await worker.user_registration(user)
+    response: UserRegistrationResponse = await worker.user_registration(user)
     return response
 
 
-@router.post("/register/confirm/", response_model=schemas.Token, tags=["Initialization"])
-async def confirm_registration(code: int) -> schemas.Token:
+@router.post("/register/confirm/", response_model=Token, tags=["Initialization"])
+async def confirm_registration(code: int) -> Token:
     """Роут для подтверждения регистрации новых пользователей"""
-    token: schemas.Token = await worker.validate_user_registration(code)
+    token: Token = await worker.validate_user_registration(code)
     return token
 
 
-@router.post("/token/", response_model=schemas.Token, tags=["Initialization"])
-async def login_user(user: schemas.UserLogin) -> schemas.Token:
-    """Роут для логина пользователей"""
-    token: schemas.Token = await worker.login(user)
+@router.post("/token/", response_model=Token, tags=["Initialization"])
+async def login_user(user: UserLogin) -> Token:
+    """Роут для аутентификации пользователей"""
+    token: Token = await worker.login(user)
     return token
 
 
-@router.post("/refresh/", response_model=schemas.Token, tags=["Initialization"])
-async def refresh_token(token: str) -> schemas.Token:
-    """Роут для обновления токена пользователя"""
-    token: schemas.Token = await worker.get_new_access_token(current_refresh_token=token)
+@router.post("/refresh/", response_model=Token, tags=["Initialization"])
+async def refresh_token(token: str) -> Token:
+    """Роут для обновления токена доступа пользователей"""
+    token: Token = await worker.get_new_access_token(refresh_token=token)
     return token
+
+
+@router.get("/logout/", tags=["Initialization"])
+async def logout():
+    """Роут используется для окончания текущей сессии пользователя"""
+    pass
