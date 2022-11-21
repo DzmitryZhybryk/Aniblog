@@ -45,7 +45,8 @@ class EmailSender:
             server.sendmail(self.work_email, self.recipient, msg.as_string())
             return "Сообщение было успешно отправлено"
         except gaierror:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Проблема с отправкой сообщения")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Проблема с отправкой сообщения на электронный адрес пользователя")
 
 
 if __name__ == '__main__':

@@ -99,6 +99,10 @@ class UserInitialization:
             data={"sub": current_user_username, "role": current_user_role, "exp": access_token_expires})
         return new_access_token
 
+    @staticmethod
+    async def delete_refresh_token(refresh_token: str) -> None:
+        await redis_database.delete_data(key=refresh_token)
+
 
 class UserStorage:
 

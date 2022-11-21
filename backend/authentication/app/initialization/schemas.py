@@ -1,7 +1,5 @@
-from datetime import datetime
-from pydantic import BaseModel, Field, Required, validator, EmailStr
+from pydantic import BaseModel, Field, Required, validator
 from email_validator import validate_email
-
 from humps import camelize
 
 
@@ -36,10 +34,10 @@ class UserRegistration(UserLogin):
         alias_generator = camelize
         allow_population_by_field_name = True
 
-    @validator("email", pre=True)
-    def lowercase(cls, value: str) -> str:
-        """Преобразует email в нижний регистр"""
-        return value.lower()
+    # @validator("email", pre=True)
+    # def lowercase(cls, value: str) -> str:
+    #     """Преобразует email в нижний регистр"""
+    #     return value.lower()
 
     @validator("confirm_password")
     def passwords_match(cls, confirm_password: str, values: dict) -> str:

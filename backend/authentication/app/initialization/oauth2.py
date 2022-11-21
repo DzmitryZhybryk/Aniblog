@@ -88,5 +88,8 @@ class InitializationServices:
         token_schema: Token = Token(access_token=new_access_token, refresh_token=refresh_token)
         return token_schema
 
+    async def logout_user(self, refresh_token: str) -> None:
+        await self._initialization.delete_refresh_token(refresh_token=refresh_token)
+
 
 worker = InitializationServices()
