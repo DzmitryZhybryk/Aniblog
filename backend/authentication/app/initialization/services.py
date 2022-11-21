@@ -46,7 +46,7 @@ class UserInitialization:
 
     async def validate_code(self, code: str) -> UserRegistration:
         """
-        Метод проверяет код подтверждения регистрации.
+        Метод проверяет код подтверждения регистрации, сравнивая его с кодом в базе данных redis.
 
         Args:
             code: введенный пользователем код подтверждения регистрации.
@@ -67,6 +67,16 @@ class UserInitialization:
         return user
 
     async def generate_token_data(self, user: User) -> Token:
+        """
+        Метод генерирует токены для пользователя.
+
+        Args:
+            user: User pydantic схема с данными пользователя.
+
+        Returns:
+            Token pydantic схема с токенами пользователя.
+
+        """
         access_token_expires = datetime.utcnow() + timedelta(minutes=jwt_config.access_token_expire)
         refresh_token_expires = datetime.utcnow() + timedelta(minutes=jwt_config.refresh_token_expire)
         await user.user_role.load()
@@ -76,16 +86,39 @@ class UserInitialization:
         await self._redis_connect.hset_data(key=refresh_token, expire=jwt_config.refresh_token_expire,
                                             username=user.username, role=user.user_role.role)
         token_schema = Token(access_token=access_token, refresh_token=refresh_token)
-
         return token_schema
 
     @staticmethod
     def _create_access_token(data: dict) -> str:
+        """
+        Метод создает токен для пользователя.
+
+        Args:
+            data: словарь с данными пользователя, которые будут закодированы в токене.
+
+        Returns:
+            токен пользователя.
+
+        """
         to_encode = data.copy()
         encode_jwt = jwt.encode(to_encode, jwt_config.secret_key, algorithm=jwt_config.jwt_algorithm)
         return encode_jwt
 
     async def authenticate(self, db_user: User, user: UserLogin) -> Token:
+        """
+        Метод проверяет пароль пользователя на соответствие с паролем в базе данных PostgreSQL.
+
+        Args:
+            db_user: User pydantic схема с данными пользователя из базы данных.
+            user: UserLogin pydantic схема с данными пользователя, который хочет авторизоваться.
+
+        Returns:
+            Token pydantic схема с токенами пользователя.
+
+        Exceptions:
+            UnauthorizedException: Если пароль не совпадает с паролем в базе данных.
+
+        """
         user_password = Password(password=user.password)
         if not user_password.verify_password(hashed_password=db_user.password):
             raise UnauthorizedException
@@ -94,7 +127,20 @@ class UserInitialization:
         return token_schema
 
     @staticmethod
-    def _decode_refresh_token(refresh_token: str):
+    def _decode_refresh_token(refresh_token: str) -> str:
+        """
+        Метод декодирует refresh_token пользователя. Проверяет, что токен не истек.
+
+        Args:
+            refresh_token: refresh_token пользователя.
+
+        Returns:
+            refresh_token пользователя.
+
+        Exceptions:
+            UnauthorizedException: Eckb если токен истек.
+
+        """
         try:
             payload = jwt.decode(refresh_token, jwt_config.secret_key, algorithms=[jwt_config.jwt_algorithm])
             if payload.get("exp") < int(time()):
@@ -105,6 +151,19 @@ class UserInitialization:
             raise UnauthorizedException
 
     async def compare_refresh_token(self, current_refresh_token: str):
+        """
+        Метод сравнивает refresh_token пользователя с refresh_token в базе данных redis.
+
+        Args:
+            current_refresh_token: текущий refresh_token пользователя.
+
+        Returns:
+            Новый access_token пользователя.
+
+        Exceptions:
+            UnauthorizedException: Если refresh_token не совпадает с refresh_token в базе данных.
+
+        """
         access_token_expires = datetime.utcnow() + timedelta(minutes=jwt_config.access_token_expire)
         if not self._decode_refresh_token(refresh_token=current_refresh_token):
             raise UnauthorizedException
@@ -119,6 +178,13 @@ class UserInitialization:
         return new_access_token
 
     async def delete_refresh_token(self, refresh_token: str) -> None:
+        """
+        Метод удаляет refresh_token пользователя из базы данных redis.
+
+        Args:
+            refresh_token: refresh_token пользователя.
+
+        """
         await self._redis_connect.delete_data(key=refresh_token)
 
 
