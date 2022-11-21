@@ -89,6 +89,14 @@ class InitializationServices:
         return token_schema
 
     async def logout_user(self, refresh_token: str) -> None:
+        """
+        Метод используется для удаления refresh_token из базы данных redis, в результате чего пользователю придётся
+        заново авторизоваться в приложении
+
+        Args:
+            refresh_token: refresh_token пользователя, который пытается выйти из приложения
+
+        """
         await self._initialization.delete_refresh_token(refresh_token=refresh_token)
 
 

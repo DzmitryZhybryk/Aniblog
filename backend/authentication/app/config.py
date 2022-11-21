@@ -5,12 +5,7 @@ from pydantic import BaseSettings
 BASE_DIR = Path(__file__).parent
 
 
-# DATABASE_PATH = BASE_DIR / "db.sqlite3"
-# DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
-
-
 class DatabaseConfig(BaseSettings):
-    # database_url: str = DATABASE_URL
     roles: set = {"admin", "moderator", "base_user"}
 
     database_port: int = 6500

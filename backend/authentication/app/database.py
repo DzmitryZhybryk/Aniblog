@@ -23,6 +23,22 @@ class DatabaseWorker:
         await self.database_obj.disconnect()
 
 
+def exceptions_handler(func):
+    async def wrapper(self, *args, **kwargs):
+        if not self._connection:
+            raise RedisConnectionError
+
+        try:
+            data = await func(self, *args, **kwargs)
+            return data
+        except RuntimeError as ex:
+            print(ex)
+        except RedisError as ex:
+            print(ex)
+
+    return wrapper
+
+
 class RedisWorker:
     def __init__(self, url: str, password: str, db: int, username: str = None):
         self.url = url
@@ -42,67 +58,30 @@ class RedisWorker:
         await self._connection.close()
         self._connection = None
 
-    async def set_data(self, key: str, value: str, expire: int | None = None) -> dict:
-        if not self._connection:
-            raise RedisConnectionError
+    @exceptions_handler
+    async def set_data(self, key: str, value: str, expire: int | None = None) -> None:
+        await self._connection.set(key, value)
+        await self._connection.expire(key, expire)
 
-        try:
-            await self._connection.set(key, value)
-            await self._connection.expire(key, expire)
-            return {"message": "data has been added"}
-        except RuntimeError as ex:
-            print(ex)
-        except RedisError as ex:
-            print(ex)
-
+    @exceptions_handler
     async def hset_data(self, key: str, expire: int | None = None, **kwargs):
-        if not self._connection:
-            raise RedisConnectionError
+        for item, value in kwargs.items():
+            await self._connection.hset(key, item, value)
+            await self._connection.expire(key, expire)
 
-        try:
-            for item, value in kwargs.items():
-                await self._connection.hset(key, item, value)
-                await self._connection.expire(key, expire)
-        except RuntimeError as ex:
-            print(ex)
-        except RedisError as ex:
-            print(ex)
-
+    @exceptions_handler
     async def get_data(self, key: str) -> dict:
-        if not self._connection:
-            raise RedisConnectionError
+        data = await self._connection.get(key)
+        return data
 
-        try:
-            data = await self._connection.get(key)
-            return data
-        except RuntimeError as ex:
-            print(ex)
-        except RedisError as ex:
-            print(ex)
-
+    @exceptions_handler
     async def hget_data(self, name: str, key: str):
-        if not self._connection:
-            raise RedisConnectionError
+        data = await self._connection.hget(name=name, key=key)
+        return data
 
-        try:
-            data = await self._connection.hget(name=name, key=key)
-            return data
-        except RuntimeError as ex:
-            print(ex)
-        except RedisError as ex:
-            print(ex)
-
-    async def delete_data(self, key: str) -> dict:
-        if not self._connection:
-            raise RedisConnectionError
-
-        try:
-            await self._connection.delete(key)
-            return {"message": "data has been deleted"}
-        except RuntimeError as ex:
-            print(ex)
-        except RedisError as ex:
-            print(ex)
+    @exceptions_handler
+    async def delete_data(self, key: str) -> None:
+        await self._connection.delete(key)
 
 
 database = DatabaseWorker(DATABASE_URL)
