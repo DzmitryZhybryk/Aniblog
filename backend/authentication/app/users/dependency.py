@@ -31,6 +31,15 @@ class UserServices:
         updated_user_schema = UserUpdate.from_orm(updated_user)
         return updated_user_schema
 
+    async def set_new_photo(self, photo: bytes):
+        pass
+
+    async def set_new_password(self):
+        pass
+
+    async def restore_password_with_email(self):
+        pass
+
 
 user_services = UserServices()
 

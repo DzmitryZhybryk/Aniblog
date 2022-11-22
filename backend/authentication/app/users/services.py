@@ -1,5 +1,4 @@
 from jose import jwt, JWTError
-from dataclasses import dataclass
 from time import time
 
 from fastapi import HTTPException, status
@@ -9,7 +8,7 @@ from orm.exceptions import NoMatch
 from ..exception import UnauthorizedException
 from ..models import User, Role
 from ..config import jwt_config
-from .schemas import UserUpdate, TokenData
+from .schemas import UserUpdate
 
 
 class UserAuthorisation:
@@ -37,15 +36,6 @@ class UserStorage:
         self._role_model = Role
 
     async def get_user_by_username(self, username: str, raise_nomatch: bool = False) -> User | None:
-        """
-        Функция получает на вход имя пользователя, ищет его в базе данных и если находит, возвращает этого пользователя
-
-        :param username: имя пользователя которого будем искать в базе данных
-        :param raise_nomatch: если True - рейзит исключение, если пользователь не найден. Если False - возвращает None.
-            По умолчанию False
-        :return: объект класса User с данными пользователя из базы данных
-
-        """
         try:
             user: User = await self._user_model.objects.get(username=username)
             await user.user_role.load()
@@ -62,39 +52,37 @@ class UserStorage:
             if raise_nomatch:
                 raise HTTPException(status_code=404, detail="User not found")
 
-    async def check_user_exists(self, username: str):
-        db_user = await self.get_user_by_username(username=username)
-        if db_user:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                                detail=f"Account with username {username} already exist")
-
-        return db_user
-
     @staticmethod
     def _is_birthday_exist(db_user: User) -> bool:
-        """
-        Функция проверяет, заполнено ли поле birthday в базе данных
-
-        :param db_user: пользователь из базы данных
-        :return: True, если поле birthday заполнено в базе данных и False, если нет
-        """
         if db_user.birthday:
             return True
 
-    async def update(self, db_user: User, user_info: UserUpdate) -> User:
-        """
-        Функция обновляет данные текущего пользователя в базе данных
-
-        :param user_info: UserUpdate pydantic схема с данными, которые надо обновить в базе данных
-        :return: объект класса User с обновленными данными пользователя из базы данных
-        """
+    @staticmethod
+    async def _is_nickname_exist(current_nickname: str, nickname: str) -> bool:
         try:
+            if await User.objects.get(nickname=nickname) and current_nickname != nickname:
+                return True
+
+        except NoMatch:
+            return False
+
+    async def update(self, db_user: User, user_info: UserUpdate) -> User:
+        try:
+            user_info.birthday = user_info.birthday if user_info.birthday else db_user.birthday
             if user_info.birthday and self._is_birthday_exist(db_user):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail="День рождения можно поменять один раз!")
 
+            if await self._is_nickname_exist(current_nickname=db_user.nickname, nickname=user_info.nickname):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Пользователь с nickname {user_info.nickname} уже существует")
+
             await db_user.update(username=user_info.username, first_name=user_info.first_name,
-                                 last_name=user_info.last_name, birthday=user_info.birthday)
+                                 last_name=user_info.last_name, birthday=user_info.birthday,
+                                 nickname=user_info.nickname)
             return db_user
         except NoMatch:
             raise UnauthorizedException
+
+    async def load_user_photo(self):
+        pass

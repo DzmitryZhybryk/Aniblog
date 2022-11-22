@@ -189,6 +189,9 @@ class UserInitialization:
 
 
 class UserStorage:
+    """
+    Класс для работы с базой данных PostgreSQL.
+    """
 
     def __init__(self):
         self._user_model = User
@@ -196,32 +199,45 @@ class UserStorage:
 
     async def has_users(self) -> bool:
         """
-        Функция проверяет наличие созданных пользователей в базе данных
+        Метод проверяет, есть ли пользователи в базе данных.
 
-        :return: bool object. True - если хотя бы один пользователь найден и False - если нет.
+        Returns:
+            true если есть пользователи, false если нет.
+
         """
         user_count = await self._user_model.objects.first()
         return bool(user_count)
 
     async def has_roles(self) -> bool:
         """
-        Функция проверяет наличие созданных ролей в базе данных
+        Метод проверяет, есть ли роли в базе данных.
 
-        :return: bool object. True - если хотя бы одна роль найдена и False - если нет.
+        Returns:
+            true если есть роли, false если нет.
+
         """
         roles_count = await self._role_model.objects.first()
         return bool(roles_count)
 
     async def create_initial_roles(self) -> None:
-        """Функция для создания ролей пользователей в базе данных"""
+        """
+        Метод создает роли в базе данных, если их нет.
+
+        """
         if not await self.has_roles():
             for role in database_config.roles:
                 await self._role_model.objects.create(role=role)
 
     async def create_initial_user(self) -> None:
-        """Функция для создания первого пользователя при запуске приложения"""
+        """
+        Метод создает init пользователя в базе данных, если его нет.
+
+        Exceptions:
+            HTTPException: Если роли не созданы.
+
+        """
         if not await self.has_roles():
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Roles not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="В начале надо создать роли")
 
         if not await self.has_users():
             hashed_password = Password(password="admin").hash_password()
@@ -232,12 +248,17 @@ class UserStorage:
 
     async def get_user_by_username(self, username: str, raise_nomatch: bool = False) -> User | None:
         """
-        Функция получает на вход имя пользователя, ищет его в базе данных и если находит, возвращает этого пользователя
+        Метод получает пользователя из базы данных postgreSQL по username.
 
-        :param username: имя пользователя которого будем искать в базе данных
-        :param raise_nomatch: если True - рейзит исключение, если пользователь не найден. Если False - возвращает None.
-            По умолчанию False
-        :return: объект класса User с данными пользователя из базы данных
+        Args:
+            username: имя пользователя.
+            raise_nomatch: определяет, будет ли вызвано исключение, если пользователь не найден.
+
+        Returns:
+            Пользователь, если он найден.
+
+        Exceptions:
+            HTTPException: Если пользователь не найден.
 
         """
         try:
@@ -249,6 +270,19 @@ class UserStorage:
                 raise UnauthorizedException
 
     async def create(self, user_data: UserRegistration) -> User:
+        """
+        Метод создает пользователя в базе данных postgreSQL.
+
+        Args:
+            user_data: данные пользователя.
+
+        Returns:
+            Созданный пользователь.
+
+        Exceptions:
+            HTTPException: Если пользователь с таким username уже существует.
+
+        """
         hashed_password = Password(user_data.password).hash_password()
         try:
             new_db_user_role = await self._role_model.objects.get(role="base_user")

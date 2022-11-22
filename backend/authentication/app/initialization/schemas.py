@@ -34,15 +34,11 @@ class UserRegistration(UserLogin):
         alias_generator = camelize
         allow_population_by_field_name = True
 
-    # @validator("email", pre=True)
-    # def lowercase(cls, value: str) -> str:
-    #     """Преобразует email в нижний регистр"""
-    #     return value.lower()
-
     @validator("confirm_password")
     def passwords_match(cls, confirm_password: str, values: dict) -> str:
         if "password" in values and "confirm_password" in values and confirm_password != values['password']:
             raise ValueError('Пароли не совпадают!')
+
         return confirm_password
 
     @validator("email")
@@ -78,6 +74,7 @@ class Token(BaseModel):
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4"
                                 "cCI6MTY2NjkzMzY5OH0.BnYgKdoD5uReamF8bKbNn0Thh0EfCqDYGMgVVUuh2uE",
+                "refresh_token": "GciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1",
                 "token_type": "Bearer"
             }
         }
