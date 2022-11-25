@@ -11,7 +11,7 @@ services:
       - 8000:8000
     depends_on:
       - postgres
-      - cache
+      - redis
 
   postgres:
     image: postgres
@@ -24,18 +24,22 @@ services:
     volumes:
       - postgres-db:/var/lib/postgresql/data
 
-  cache:
+  redis:
     image: redis
     container_name: redis
     ports:
       - '6379:6379'
     restart: always
     volumes:
-      - cache:/data
+      - redis_cache:/data
+    environment:
+#      - REDIS_PASSWORD=3050132596
+      - REDIS_IO_THREADS_DO_READS=true
+      - REDIS_IO_THREADS=4
     command: redis-server --requirepass 3050132596
 
 
 volumes:
   postgres-db:
-  cache:
+  redis_cache:
     driver: local

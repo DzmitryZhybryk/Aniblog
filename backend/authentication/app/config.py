@@ -18,7 +18,9 @@ class DatabaseConfig(BaseSettings):
     redis_host: str = "redis://redis"
     redis_username: str = "dzmitry_zhybryk"
     redis_password: str = "3050132596"
-    redis_db: int = 0
+    redis_initialization_db: int = 0
+    redis_rout_cash_db: int = 1
+    redis_postgres_qwery_db: int = 2
     expire_verification_code_time: int = 10800
 
     class Config:

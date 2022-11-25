@@ -185,7 +185,9 @@ class UserInitialization:
             refresh_token: refresh_token пользователя.
 
         """
-        await self._redis_connect.delete_data(key=refresh_token)
+        d = await self._redis_connect.delete_data(key=refresh_token)
+        print("################")
+        print(d)
 
 
 class UserStorage:

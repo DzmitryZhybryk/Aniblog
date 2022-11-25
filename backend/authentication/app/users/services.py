@@ -68,10 +68,10 @@ class UserStorage:
 
     async def update(self, db_user: User, user_info: UserUpdate) -> User:
         try:
-            user_info.birthday = user_info.birthday if user_info.birthday else db_user.birthday
-            if user_info.birthday and self._is_birthday_exist(db_user):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail="День рождения можно поменять один раз!")
+            # user_info.birthday = user_info.birthday if user_info.birthday else db_user.birthday
+            # if user_info.birthday and self._is_birthday_exist(db_user):
+            #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+            #                         detail="День рождения можно поменять один раз!")
 
             if await self._is_nickname_exist(current_nickname=db_user.nickname, nickname=user_info.nickname):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -84,5 +84,5 @@ class UserStorage:
         except NoMatch:
             raise UnauthorizedException
 
-    async def load_user_photo(self):
+    async def load_user_photo(self, photo: bytes):
         pass

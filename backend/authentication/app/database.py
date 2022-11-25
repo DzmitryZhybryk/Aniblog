@@ -1,5 +1,7 @@
 import aioredis
+from cashews import cache
 
+from abc import ABC, abstractmethod
 from aioredis import Redis
 from aioredis.exceptions import RedisError
 from databases import Database
@@ -39,7 +41,9 @@ def exceptions_handler(func):
     return wrapper
 
 
-class RedisWorker:
+class RedisBase(ABC):
+
+    @abstractmethod
     def __init__(self, url: str, password: str, db: int, username: str = None):
         self.url = url
         self.password = password
@@ -51,12 +55,16 @@ class RedisWorker:
         self._connection = aioredis.from_url(self.url, username=self.username, password=self.password, db=self.db,
                                              decode_responses=True)
 
+    @exceptions_handler
     async def disconnect(self):
-        if not self._connection:
-            raise RedisConnectionError
-
         await self._connection.close()
         self._connection = None
+
+
+class RedisWorker(RedisBase):
+    def __init__(self, url: str, password: str, db: int, username: str = None):
+        super().__init__(url, password, db, username)
+        self._connection: Redis | None = None
 
     @exceptions_handler
     async def set_data(self, key: str, value: str, expire: int | None = None) -> None:
@@ -87,4 +95,7 @@ class RedisWorker:
 database = DatabaseWorker(DATABASE_URL)
 redis_database = RedisWorker(url=f"{database_config.redis_host}",
                              password=f"{database_config.redis_password}",
-                             db=database_config.redis_db)
+                             db=database_config.redis_initialization_db)
+
+cache.setup("redis://redis/0", password="3050132596", socket_connect_timeout=0.1, retry_on_timeout=True,
+            hash_key="my_secret", digestmod="sha256")

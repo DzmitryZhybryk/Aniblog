@@ -67,6 +67,12 @@ class UserOut(UserUpdate):
         orm_mode = True
         schema_extra = {
             "example": {
+                "username": "admin",
+                "nickname": "djinkster",
+                "first_name": "Dzmitry",
+                "last_name": "Zhybryk",
+                "email": "example@mail.ru",
+                "birthday": "1990-10-14 15:41:39.641747",
                 "user_role": "base_user",
                 "created_at": "2022-09-25 15:41:39.641747"
             }
