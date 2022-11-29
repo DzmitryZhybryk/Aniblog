@@ -19,7 +19,7 @@ from ..config import jwt_config, database_config
 from ..utils.email_sender import EmailSender
 from ..utils.code_verification import verification_code
 from ..utils.password_verification import Password
-from ..database import redis_database
+from ..database import redis_database, redis_qwery_cash_db
 
 
 class UserInitialization:
@@ -185,9 +185,7 @@ class UserInitialization:
             refresh_token: refresh_token пользователя.
 
         """
-        d = await self._redis_connect.delete_data(key=refresh_token)
-        print("################")
-        print(d)
+        await self._redis_connect.delete_data(key=refresh_token)
 
 
 class UserStorage:
@@ -264,8 +262,12 @@ class UserStorage:
 
         """
         try:
-            user: User = await self._user_model.objects.get(username=username)
-            await user.user_role.load()
+            user = await redis_qwery_cash_db.get(key=username)
+            if not user:
+                user: User = await self._user_model.objects.get(username=username)
+                await user.user_role.load()
+                await redis_qwery_cash_db.set(key=username, value=user, expire=timedelta(hours=12))
+
             return user
         except NoMatch:
             if raise_nomatch:

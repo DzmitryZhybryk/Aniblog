@@ -1,5 +1,5 @@
 import aioredis
-from cashews import cache
+from cashews import cache, Cache
 
 from abc import ABC, abstractmethod
 from aioredis import Redis
@@ -97,5 +97,14 @@ redis_database = RedisWorker(url=f"{database_config.redis_host}",
                              password=f"{database_config.redis_password}",
                              db=database_config.redis_initialization_db)
 
-cache.setup("redis://redis/0", password="3050132596", socket_connect_timeout=0.1, retry_on_timeout=True,
-            hash_key="my_secret", digestmod="sha256")
+cache_router = Cache()
+cache_router.setup(f"{database_config.redis_host}{database_config.redis_rout_cash_db}",
+                   password=database_config.redis_password,
+                   socket_connect_timeout=database_config.socket_connect_timeout, retry_on_timeout=True,
+                   hash_key=database_config.hash_key, digestmod=database_config.digestmod)
+
+redis_qwery_cash_db = Cache()
+redis_qwery_cash_db.setup(f"{database_config.redis_host}{database_config.redis_qwery_cash_db}",
+                          password=database_config.redis_password,
+                          socket_connect_timeout=database_config.socket_connect_timeout, retry_on_timeout=True,
+                          hash_key=database_config.hash_key, digestmod=database_config.digestmod)

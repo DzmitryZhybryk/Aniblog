@@ -15,13 +15,16 @@ class DatabaseConfig(BaseSettings):
     postgres_host: str = "postgres"
     postgres_hostname: str = "127.0.0.1"
 
-    redis_host: str = "redis://redis"
+    redis_host: str = "redis://redis/"
     redis_username: str = "dzmitry_zhybryk"
     redis_password: str = "3050132596"
     redis_initialization_db: int = 0
     redis_rout_cash_db: int = 1
-    redis_postgres_qwery_db: int = 2
+    redis_qwery_cash_db: int = 2
     expire_verification_code_time: int = 10800
+    socket_connect_timeout: float = 0.1
+    hash_key: str = "somedificultkey"
+    digestmod: str = "sha256"
 
     class Config:
         env_file = "./.env"

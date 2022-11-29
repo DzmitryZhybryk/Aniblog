@@ -1,5 +1,6 @@
 from jose import jwt, JWTError
 from time import time
+from datetime import timedelta
 
 from fastapi import HTTPException, status
 
@@ -8,6 +9,7 @@ from orm.exceptions import NoMatch
 from ..exception import UnauthorizedException
 from ..models import User, Role
 from ..config import jwt_config
+from ..database import redis_qwery_cash_db
 from .schemas import UserUpdate
 
 
@@ -37,20 +39,16 @@ class UserStorage:
 
     async def get_user_by_username(self, username: str, raise_nomatch: bool = False) -> User | None:
         try:
-            user: User = await self._user_model.objects.get(username=username)
-            await user.user_role.load()
+            user = await redis_qwery_cash_db.get(key=username)
+            if not user:
+                user: User = await self._user_model.objects.get(username=username)
+                await user.user_role.load()
+                await redis_qwery_cash_db.set(key=username, value=user, expire=timedelta(hours=12))
+
             return user
         except NoMatch:
             if raise_nomatch:
                 raise UnauthorizedException
-
-    async def get_user_by_id(self, user_id: str, raise_nomatch: bool = False) -> User:
-        try:
-            user = await self._user_model.objects.get(id=user_id)
-            return user
-        except NoMatch:
-            if raise_nomatch:
-                raise HTTPException(status_code=404, detail="User not found")
 
     @staticmethod
     def _is_birthday_exist(db_user: User) -> bool:
@@ -66,6 +64,7 @@ class UserStorage:
         except NoMatch:
             return False
 
+    @redis_qwery_cash_db.invalidate(get_user_by_username)
     async def update(self, db_user: User, user_info: UserUpdate) -> User:
         try:
             # user_info.birthday = user_info.birthday if user_info.birthday else db_user.birthday

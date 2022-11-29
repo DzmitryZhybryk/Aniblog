@@ -1,10 +1,10 @@
 from fastapi import HTTPException, status, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from ..config import database_config
-from ..models import User
 from .schemas import UserUpdate
 from .services import UserStorage, UserAuthorisation
+from ..config import database_config
+from ..models import User
 
 oauth2_scheme = HTTPBearer()
 
@@ -17,10 +17,10 @@ class UserServices:
 
     async def get_current_user(self, credentials: HTTPAuthorizationCredentials = Security(oauth2_scheme)) -> User:
         """
-        Dependency, используется для получения текущего пользователя
+        Dependency, используется для получения текущего пользователя.
 
-        :param credentials: токен доступа с данными текущего пользователя
-        :return: UserOut pydantic схема с данными текущего пользователя
+        :param credentials: токен доступа с данными текущего пользователя.
+        :return: UserOut pydantic схема с данными текущего пользователя.
         """
         username = self._authentication.decode_token(credentials.credentials)
         current_user = await self._storage.get_user_by_username(username=username)
