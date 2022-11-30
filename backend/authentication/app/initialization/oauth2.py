@@ -5,6 +5,7 @@
 """
 from .services import UserStorage, UserInitialization
 from .schemas import UserRegistration, UserLogin, Token, UserRegistrationResponse
+from ..utils.token import token_worker
 
 
 class InitializationServices:
@@ -16,6 +17,7 @@ class InitializationServices:
     def __init__(self):
         self._initialization = UserInitialization()
         self._storage = UserStorage()
+        self._token_worker = token_worker
 
     async def user_registration(self, user: UserRegistration) -> UserRegistrationResponse:
         """
@@ -29,6 +31,7 @@ class InitializationServices:
             UserRegistrationResponse pydantic схему с данными пользователя, который пытается зарегистрироваться
 
         """
+        await self._storage.check_registration_uniq_data(username=user.username, email=user.email)
         await self._initialization.send_registration_code_to_email(user=user)
         user_response_data = UserRegistrationResponse(username=user.username, email=user.email)
         return user_response_data
@@ -36,7 +39,7 @@ class InitializationServices:
     async def validate_user_registration(self, code: str) -> Token:
         """
         Метод для подтверждения регистрации нового пользователя. Пытается найти полученный код в базе данных
-        redis. Если такой код там найден - отправляет запрос в PostgreSQL базу данных для создания в ней
+        redis. Если такой код там найден - отправляет запрос в PostgresSQL базу данных для создания в ней
         нового пользователя. После этого генерирует и возвращает токены доступа для этого пользователя.
         Полученный код будет удалён из redis.
 
@@ -49,8 +52,12 @@ class InitializationServices:
         """
         validated_user = await self._initialization.validate_code(code=code)
         new_db_user = await self._storage.create(user_data=validated_user)
-        tokens: Token = await self._initialization.generate_token_data(user=new_db_user)
-        return tokens
+        await new_db_user.user_role.load()
+        access_token = await self._token_worker.create_access_token(username=new_db_user.username,
+                                                                    role=new_db_user.user_role.role)
+        refresh_token = await self._token_worker.create_refresh_token()
+        token_schema: Token = Token(access_token=access_token, refresh_token=refresh_token)
+        return token_schema
 
     async def login(self, user: UserLogin) -> Token:
         """

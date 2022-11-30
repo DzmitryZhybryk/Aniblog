@@ -55,7 +55,8 @@ class UserRegistrationResponse(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "message": "Данные для подтверждения регистрации отправлены на электронную почту.",
+                "message": "Письмо с кодом подтверждения регистрации отправлено на электронную почту. "
+                           "Время жизни кода - 5 минут",
                 "username": "admin",
                 "email": "example@mail.ru"
             }

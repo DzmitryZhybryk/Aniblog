@@ -1,5 +1,3 @@
-from jose import jwt, JWTError
-from time import time
 from datetime import timedelta, datetime
 
 from fastapi import HTTPException, status
@@ -7,29 +5,9 @@ from fastapi import HTTPException, status
 from orm.exceptions import NoMatch
 
 from ..exception import UnauthorizedException
-from ..models import User, Role
-from ..config import jwt_config
+from ..models import User
 from ..database import redis_qwery_cash_db
 from .schemas import UserUpdate
-
-
-class UserAuthorisation:
-
-    @staticmethod
-    def decode_token(token: str) -> str:
-        try:
-            payload = jwt.decode(token, jwt_config.secret_key, algorithms=[jwt_config.jwt_algorithm])
-            username: str = payload.get("sub")
-            if username is None:
-                raise UnauthorizedException
-
-            if payload.get("exp") < int(time()):
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
-
-            return username
-        except JWTError:
-            raise UnauthorizedException
-
 
 from ..base_storages import BaseStorage
 
@@ -38,11 +16,6 @@ class UserStorage(BaseStorage):
 
     def __init__(self):
         self._user_model = User
-
-    @staticmethod
-    def _is_birthday_exist(db_user: User) -> bool:
-        if db_user.birthday:
-            return True
 
     async def _is_nickname_exist(self, current_nickname: str, nickname: str) -> bool:
         try:

@@ -21,7 +21,7 @@ class DatabaseConfig(BaseSettings):
     redis_initialization_db: int = 0
     redis_rout_cash_db: int = 1
     redis_qwery_cash_db: int = 2
-    expire_verification_code_time: int = 10800
+    expire_verification_code_time: int = 300  # second
     socket_connect_timeout: float = 0.1
     hash_key: str = "somedificultkey"
     digestmod: str = "sha256"
