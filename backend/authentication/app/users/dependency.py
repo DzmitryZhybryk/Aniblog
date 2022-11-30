@@ -9,7 +9,7 @@ from ..models import User
 oauth2_scheme = HTTPBearer()
 
 
-class UserServices:
+class UserHandler:
 
     def __init__(self):
         self._authentication = UserAuthorisation()
@@ -41,17 +41,17 @@ class UserServices:
         pass
 
 
-user_services = UserServices()
+worker = UserHandler()
 
 
 class RoleRequired:
-    """Класс для проверки роли пользователя. От роли пользователя зависет его уровень доступа"""
+    """Класс для проверки роли пользователя. От роли пользователя зависит его уровень доступа"""
 
     def __init__(self, role: set):
         self.role = role
         self.roles: set = database_config.roles
 
-    def __call__(self, user: User = Depends(user_services.get_current_user)):
+    def __call__(self, user: User = Depends(worker.get_current_user)):
         if user.user_role.role not in self.role:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="Недостаточно прав для получения доступа к этой странице")

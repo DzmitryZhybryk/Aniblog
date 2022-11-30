@@ -1,14 +1,12 @@
-import asyncio
-
 from datetime import timedelta
-from fastapi import APIRouter, Depends, UploadFile, status
-from cashews import noself_cache
 
+from fastapi import APIRouter, Depends, UploadFile, status
+
+from .dependency import worker, RoleRequired
 from .schemas import UserOut, UserUpdate
-from .dependency import user_services, RoleRequired
 from ..config import database_config
-from ..models import User
 from ..database import cache_router
+from ..models import User
 
 router = APIRouter()
 
@@ -19,7 +17,7 @@ router = APIRouter()
             tags=["User"],
             status_code=status.HTTP_200_OK)
 @cache_router(ttl=timedelta(minutes=1))
-async def current_user(user: User = Depends(user_services.get_current_user)):
+async def current_user(user: User = Depends(worker.get_current_user)):
     """Роут для получения информации о текущем пользователе"""
     return (UserOut(
         username=user.username, first_name=user.first_name, last_name=user.last_name, nickname=user.nickname,
@@ -33,9 +31,9 @@ async def current_user(user: User = Depends(user_services.get_current_user)):
             tags=["User"],
             status_code=status.HTTP_200_OK)
 @cache_router.invalidate(current_user)
-async def current_user_update(update_data: UserUpdate, user: User = Depends(user_services.get_current_user)):
+async def current_user_update(update_data: UserUpdate, user: User = Depends(worker.get_current_user)):
     """Роут для изменения данных текущего пользователя"""
-    updated_user = await user_services.update_current_user(user, update_data)
+    updated_user = await worker.update_current_user(user, update_data)
     return updated_user
 
 

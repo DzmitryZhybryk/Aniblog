@@ -11,7 +11,6 @@ class PhotosDict:
 
 
 class UserUpdate(BaseModel):
-    username: str | None
     nickname: str | None
     first_name: str | None
     last_name: str | None
@@ -22,7 +21,6 @@ class UserUpdate(BaseModel):
         orm_mode = True
         schema_extra = {
             "example": {
-                "username": "admin",
                 "nickname": "djinkster",
                 "first_name": "Dzmitry",
                 "last_name": "Zhybryk",

@@ -9,7 +9,6 @@ from time import time
 
 from fastapi import HTTPException, status
 from asyncpg.exceptions import UniqueViolationError
-from orm.exceptions import NoMatch
 from sqlite3 import IntegrityError
 
 from .schemas import UserRegistration, UserLogin, Token
@@ -19,7 +18,8 @@ from ..config import jwt_config, database_config
 from ..utils.email_sender import EmailSender
 from ..utils.code_verification import verification_code
 from ..utils.password_verification import Password
-from ..database import redis_database, redis_qwery_cash_db
+from ..database import redis_database
+from ..base_storages import BaseStorage
 
 
 class UserInitialization:
@@ -29,6 +29,7 @@ class UserInitialization:
 
     def __init__(self):
         self._redis_connect = redis_database
+        self._user_model = User
 
     async def send_registration_code_to_email(self, user: UserRegistration) -> None:
         """
@@ -109,11 +110,11 @@ class UserInitialization:
         Метод проверяет пароль пользователя на соответствие с паролем в базе данных PostgreSQL.
 
         Args:
-            db_user: User pydantic схема с данными пользователя из базы данных.
-            user: UserLogin pydantic схема с данными пользователя, который хочет авторизоваться.
+            db_user: User pydantic схема с данными пользователя из базы данных
+            user: UserLogin pydantic схема с данными пользователя, который хочет авторизоваться
 
         Returns:
-            Token pydantic схема с токенами пользователя.
+            Token pydantic схема с токенами пользователя
 
         Exceptions:
             UnauthorizedException: Если пароль не совпадает с паролем в базе данных.
@@ -188,7 +189,7 @@ class UserInitialization:
         await self._redis_connect.delete_data(key=refresh_token)
 
 
-class UserStorage:
+class UserStorage(BaseStorage):
     """
     Класс для работы с базой данных PostgreSQL.
     """
@@ -245,33 +246,6 @@ class UserStorage:
             await self._user_model.objects.create(username="admin", password=hashed_password,
                                                   user_role=initial_user_role,
                                                   email="test@mail.ru")
-
-    async def get_user_by_username(self, username: str, raise_nomatch: bool = False) -> User | None:
-        """
-        Метод получает пользователя из базы данных postgreSQL по username.
-
-        Args:
-            username: имя пользователя.
-            raise_nomatch: определяет, будет ли вызвано исключение, если пользователь не найден.
-
-        Returns:
-            Пользователь, если он найден.
-
-        Exceptions:
-            HTTPException: Если пользователь не найден.
-
-        """
-        try:
-            user = await redis_qwery_cash_db.get(key=username)
-            if not user:
-                user: User = await self._user_model.objects.get(username=username)
-                await user.user_role.load()
-                await redis_qwery_cash_db.set(key=username, value=user, expire=timedelta(hours=12))
-
-            return user
-        except NoMatch:
-            if raise_nomatch:
-                raise UnauthorizedException
 
     async def create(self, user_data: UserRegistration) -> User:
         """
