@@ -3,7 +3,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, UploadFile, status
 
 from .dependency import worker, RoleRequired
-from .schemas import UserOut, UserUpdate
+from .schemas import UserOut, UserUpdate, PasswordUpdate
 from ..config import database_config
 from ..database import cache_router
 from ..models import User
@@ -35,6 +35,12 @@ async def current_user_update(update_data: UserUpdate, user: User = Depends(work
     """Роут для изменения данных текущего пользователя"""
     updated_user = await worker.update_current_user(user, update_data)
     return updated_user
+
+
+@router.post("/me/password/", dependencies=[Depends(RoleRequired(database_config.roles))], tags=["User"],
+             status_code=status.HTTP_204_NO_CONTENT)
+async def current_user_update_password(update_data: PasswordUpdate, user: User = Depends(worker.get_current_user)):
+    await worker.set_new_password(update_data=update_data, user=user)
 
 
 @router.post("/photo/",

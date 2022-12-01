@@ -77,3 +77,23 @@ class UserOut(UserUpdate):
         }
         alias_generator = camelize
         allow_population_by_field_name = True
+
+
+class PasswordUpdate(BaseModel):
+    new_password: str
+    confirm_password: str
+
+    @validator("confirm_password")
+    def passwords_match(cls, confirm_password: str, values: dict) -> str:
+        if "new_password" in values and "confirm_password" in values and confirm_password != values['new_password']:
+            raise ValueError('Пароли не совпадают!')
+
+        return confirm_password
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "new_password": "StrongPassword",
+                "confirm_password": "StrongPassword"
+            }
+        }

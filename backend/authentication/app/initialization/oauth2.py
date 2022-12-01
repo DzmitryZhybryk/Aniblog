@@ -55,7 +55,8 @@ class InitializationServices:
         new_db_user = await self._storage.create(user_data=validated_user)
         await new_db_user.user_role.load()
         token_schema = await self._token_worker.get_token_schema(username=new_db_user.username,
-                                                                 role=new_db_user.user_role.role)
+                                                                 role=new_db_user.user_role.role, access_token=True,
+                                                                 refresh_token=True)
         await self._initialization.save_user_data_to_redis(username=new_db_user.username,
                                                            role=new_db_user.user_role.role,
                                                            refresh_token=token_schema.refresh_token)

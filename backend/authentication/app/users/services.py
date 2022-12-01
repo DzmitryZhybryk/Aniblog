@@ -3,11 +3,11 @@ from datetime import timedelta, datetime
 from fastapi import HTTPException, status
 from orm.exceptions import NoMatch
 
-from .schemas import UserUpdate
+from .schemas import UserUpdate, PasswordUpdate
 from ..base_storages import BaseStorage
 from ..database import redis_qwery_cash_db
-from ..exception import UnauthorizedException
 from ..models import User
+from ..utils.password_verification import Password
 
 
 class UserStorage(BaseStorage):
@@ -23,7 +23,7 @@ class UserStorage(BaseStorage):
         except NoMatch:
             return False
 
-    async def update(self, db_user: User, user_info: UserUpdate) -> User:
+    async def update_main_data(self, db_user: User, user_info: UserUpdate) -> User:
         try:
             if await self._is_nickname_exist(current_nickname=db_user.nickname, nickname=user_info.nickname):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -35,7 +35,16 @@ class UserStorage(BaseStorage):
             await redis_qwery_cash_db.set(key=db_user.username, value=updated_user, expire=timedelta(hours=12))
             return db_user
         except NoMatch:
-            raise UnauthorizedException
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Пользователь не найден")
+
+    async def update_password(self, db_user: User, user_info: PasswordUpdate):
+        try:
+            password = Password(password=user_info.new_password)
+            new_password = password.hash_password()
+            updated_user = await db_user.update(password=new_password)
+            await redis_qwery_cash_db.set(key=db_user.username, value=updated_user)
+        except NoMatch:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Пользователь не найден")
 
     async def load_user_photo(self, photo: bytes):
         pass

@@ -23,9 +23,14 @@ class TokenWorker:
         refresh_token = self._create_token(data={"exp": refresh_token_expires})
         return refresh_token
 
-    async def get_token_schema(self, username: str, role: str) -> Token:
-        access_token = await self._create_access_token(username=username, role=role)
-        refresh_token = await self._create_refresh_token()
+    async def get_token_schema(self, username: str, role: str, access_token: bool = False,
+                               refresh_token: bool = False) -> Token:
+        if access_token:
+            access_token = await self._create_access_token(username=username, role=role)
+
+        if refresh_token:
+            refresh_token = await self._create_refresh_token()
+
         token_schema = Token(access_token=access_token, refresh_token=refresh_token)
         return token_schema
 

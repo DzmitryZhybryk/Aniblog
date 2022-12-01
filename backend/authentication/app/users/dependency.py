@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status, Depends, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from .schemas import UserUpdate
+from .schemas import UserUpdate, PasswordUpdate
 from .services import UserStorage
 from ..config import database_config
 from ..models import User
@@ -28,14 +28,14 @@ class UserHandler:
         return current_user
 
     async def update_current_user(self, db_user: User, user_info: UserUpdate) -> UserUpdate:
-        updated_user = await self._storage.update(db_user, user_info)
+        updated_user = await self._storage.update_main_data(db_user, user_info)
         updated_user_schema = UserUpdate.from_orm(updated_user)
         return updated_user_schema
 
-    async def set_new_photo(self, photo: bytes):
-        pass
+    async def set_new_password(self, update_data: PasswordUpdate, user: User):
+        await self._storage.update_password(db_user=user, user_info=update_data)
 
-    async def set_new_password(self):
+    async def set_new_photo(self, photo: bytes):
         pass
 
     async def restore_password_with_email(self):

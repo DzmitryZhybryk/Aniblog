@@ -77,7 +77,7 @@ class UserInitialization:
 
     async def authenticate(self, db_user: User, user: UserLogin) -> Token:
         """
-        Метод проверяет пароль пользователя на соответствие с паролем в базе данных PostgreSQL.
+        Метод проверяет пароль пользователя на соответствие с паролем в базе данных PostgresSQL.
 
         Args:
             db_user: User pydantic схема с данными пользователя из базы данных
@@ -94,8 +94,9 @@ class UserInitialization:
         if not user_password.verify_password(hashed_password=db_user.password):
             raise UnauthorizedException
 
-        db_user.user_role.load()
-        token_schema = await self._token_worker.get_token_schema(username=db_user.username, role=db_user.user_role.role)
+        await db_user.user_role.load()
+        token_schema = await self._token_worker.get_token_schema(username=db_user.username, role=db_user.user_role.role,
+                                                                 refresh_token=True, access_token=True)
         await self.save_user_data_to_redis(username=db_user.username, role=db_user.user_role.role,
                                            refresh_token=token_schema.refresh_token)
         return token_schema
@@ -123,8 +124,8 @@ class UserInitialization:
             raise UnauthorizedException
 
         token_schema: Token = await self._token_worker.get_token_schema(username=current_refresh_token,
-                                                                        role=current_user_role)
-        return token_schema.access_token
+                                                                        role=current_user_role, access_token=True)
+        return token_schema
 
     async def delete_refresh_token(self, refresh_token: str) -> None:
         """
