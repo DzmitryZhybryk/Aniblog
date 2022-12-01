@@ -1,15 +1,13 @@
 from datetime import timedelta, datetime
 
 from fastapi import HTTPException, status
-
 from orm.exceptions import NoMatch
 
+from .schemas import UserUpdate
+from ..base_storages import BaseStorage
+from ..database import redis_qwery_cash_db
 from ..exception import UnauthorizedException
 from ..models import User
-from ..database import redis_qwery_cash_db
-from .schemas import UserUpdate
-
-from ..base_storages import BaseStorage
 
 
 class UserStorage(BaseStorage):

@@ -39,7 +39,7 @@ async def refresh_token(token: str = Body(embed=True)) -> Token:
     return token
 
 
-@router.post("/logout/", tags=["Initialization"], status_code=status.HTTP_204_NO_CONTENT, description="ololo")
+@router.post("/logout/", tags=["Initialization"], status_code=status.HTTP_204_NO_CONTENT)
 async def logout(token: str = Body(embed=True)) -> None:
     """Роут для выхода текущего пользователя из системы"""
     await worker.logout_user(refresh_token=token)

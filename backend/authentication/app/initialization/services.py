@@ -1,26 +1,25 @@
 """
 Модуль хранит в себе UserInitialization и UserStorage классы.
 UserInitialization - класс, который инициализирует пользователя.
-UserStorage - класс, который хранит данные пользователя и сзаимодействует с базой данных.
+UserStorage - класс, который взаимодействует с базой данных.
 """
-from jose import jwt, JWTError
-from time import time
-
-from fastapi import HTTPException, status
-from asyncpg.exceptions import UniqueViolationError
 from sqlite3 import IntegrityError
+
+from asyncpg.exceptions import UniqueViolationError
+from fastapi import HTTPException, status
 from orm.exceptions import NoMatch
 
 from .schemas import UserRegistration, UserLogin, Token
-from ..exception import UnauthorizedException
-from ..models import User, Role
-from ..config import jwt_config, database_config
-from ..utils.email_sender import EmailSender
-from ..utils.code_verification import verification_code
-from ..utils.password_verification import Password
-from ..utils.token import token_worker
-from ..database import redis_database
 from ..base_storages import BaseStorage
+from ..config import database_config
+from ..exception import UnauthorizedException
+from ..database import RedisWorker
+from ..models import User, Role
+from ..config import jwt_config
+from ..utils.code_verification import verification_code
+from ..utils.email_sender import EmailSender
+from ..utils.password_verification import Password
+from ..utils.token import TokenWorker
 
 
 class UserInitialization:
@@ -28,10 +27,10 @@ class UserInitialization:
     Класс для инициализации пользователей в системе.
     """
 
-    def __init__(self):
-        self._redis_connect = redis_database
-        self._user_model = User
+    def __init__(self, redis_connect: RedisWorker, token_worker: TokenWorker):
+        self._redis_connect = redis_connect
         self._token_worker = token_worker
+        self._user_model = User
 
     async def _save_registration_data_to_redis(self, registration_code: str, user: UserRegistration) -> None:
         await self._redis_connect.set_data(key=registration_code, value=user.json(),
@@ -72,6 +71,10 @@ class UserInitialization:
         user = UserRegistration.parse_raw(user_info)
         return user
 
+    async def save_user_data_to_redis(self, username: str, role: str, refresh_token: str) -> None:
+        await self._redis_connect.hset_data(key=refresh_token, expire=jwt_config.refresh_token_expire,
+                                            username=username, role=role)
+
     async def authenticate(self, db_user: User, user: UserLogin) -> Token:
         """
         Метод проверяет пароль пользователя на соответствие с паролем в базе данных PostgreSQL.
@@ -91,11 +94,10 @@ class UserInitialization:
         if not user_password.verify_password(hashed_password=db_user.password):
             raise UnauthorizedException
 
-        access_token = await self._token_worker.create_access_token(username=db_user.username,
-                                                                    role=db_user.user_role.role)
-        refresh_token = await self._token_worker.create_refresh_token()
-
-        token_schema: Token = Token(access_token=access_token, refresh_token=refresh_token)
+        db_user.user_role.load()
+        token_schema = await self._token_worker.get_token_schema(username=db_user.username, role=db_user.user_role.role)
+        await self.save_user_data_to_redis(username=db_user.username, role=db_user.user_role.role,
+                                           refresh_token=token_schema.refresh_token)
         return token_schema
 
     async def compare_refresh_token(self, current_refresh_token: str):
@@ -120,9 +122,9 @@ class UserInitialization:
         if not current_user_username or not current_user_role:
             raise UnauthorizedException
 
-        new_access_token = self._token_worker.create_access_token(username=current_refresh_token,
-                                                                  role=current_user_role)
-        return new_access_token
+        token_schema: Token = await self._token_worker.get_token_schema(username=current_refresh_token,
+                                                                        role=current_user_role)
+        return token_schema.access_token
 
     async def delete_refresh_token(self, refresh_token: str) -> None:
         """

@@ -1,11 +1,11 @@
 """
-Модуль хранит в себе InitializationService класс, который служит для генерации токенов доступа,
-а так же для регистрации и аутентификации пользователей
+Модуль хранит в себе InitializationService класс, который служит для регистрации и аутентификации пользователей
 
 """
-from .services import UserStorage, UserInitialization
 from .schemas import UserRegistration, UserLogin, Token, UserRegistrationResponse
-from ..utils.token import token_worker
+from .services import UserStorage, UserInitialization
+from ..database import redis_database, RedisWorker
+from ..utils.token import token, TokenWorker
 
 
 class InitializationServices:
@@ -14,10 +14,10 @@ class InitializationServices:
 
     """
 
-    def __init__(self):
-        self._initialization = UserInitialization()
-        self._storage = UserStorage()
+    def __init__(self, redis_connect: RedisWorker, token_worker: TokenWorker):
+        self._initialization = UserInitialization(redis_connect=redis_connect, token_worker=token_worker)
         self._token_worker = token_worker
+        self._storage = UserStorage()
 
     async def user_registration(self, user: UserRegistration) -> UserRegistrationResponse:
         """
@@ -28,7 +28,7 @@ class InitializationServices:
             user: pydantic схема c данными пользователя, указанными при регистрации
 
         Returns:
-            UserRegistrationResponse pydantic схему с данными пользователя, который пытается зарегистрироваться
+            pydantic схема с данными пользователя, который пытается зарегистрироваться
 
         """
         await self._storage.check_registration_uniq_data(username=user.username, email=user.email)
@@ -44,7 +44,8 @@ class InitializationServices:
         Полученный код будет удалён из redis.
 
         Args:
-            code: проверочный код, который был отправлен новому пользователю на электронный адрес, для подвтерждения регистраци
+            code: проверочный код, который был отправлен новому пользователю на электронный адрес,
+                для подтверждения регистрации
 
         Returns:
             Token pydantic схему с токенами доступа для авторизации пользователя
@@ -53,16 +54,17 @@ class InitializationServices:
         validated_user = await self._initialization.validate_code(code=code)
         new_db_user = await self._storage.create(user_data=validated_user)
         await new_db_user.user_role.load()
-        access_token = await self._token_worker.create_access_token(username=new_db_user.username,
-                                                                    role=new_db_user.user_role.role)
-        refresh_token = await self._token_worker.create_refresh_token()
-        token_schema: Token = Token(access_token=access_token, refresh_token=refresh_token)
+        token_schema = await self._token_worker.get_token_schema(username=new_db_user.username,
+                                                                 role=new_db_user.user_role.role)
+        await self._initialization.save_user_data_to_redis(username=new_db_user.username,
+                                                           role=new_db_user.user_role.role,
+                                                           refresh_token=token_schema.refresh_token)
         return token_schema
 
     async def login(self, user: UserLogin) -> Token:
         """
         Метод используется для аутентификации пользователей. Принимает на вход UserLogin pydantic схему с
-        username и password пользователя. Далее по полученному username формирует запрос в PostgreSQL,
+        username и password пользователя. Далее по полученному username формирует запрос в PostgresSQL,
         с целью выяснить, существует такой пользователь, или нет. Если такой пользователь найден, производит
         проверку введённого password и password из базы данных на соответствие. В случае успешной
         аутентификации - возвращает токены, для получения доступа к ресурсам приложения
@@ -107,4 +109,4 @@ class InitializationServices:
         await self._initialization.delete_refresh_token(refresh_token=refresh_token)
 
 
-worker = InitializationServices()
+worker = InitializationServices(redis_connect=redis_database, token_worker=token)

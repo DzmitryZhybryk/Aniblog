@@ -5,7 +5,7 @@ from .schemas import UserUpdate
 from .services import UserStorage
 from ..config import database_config
 from ..models import User
-from ..utils.token import token_worker
+from ..utils.token import token
 
 oauth2_scheme = HTTPBearer()
 
@@ -14,7 +14,7 @@ class UserHandler:
 
     def __init__(self):
         self._storage = UserStorage()
-        self._token_worker = token_worker
+        self._token_worker = token
 
     async def get_current_user(self, credentials: HTTPAuthorizationCredentials = Security(oauth2_scheme)) -> User:
         """
