@@ -8,7 +8,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class Password:
 
-    def __init__(self, password: str | None = None):
+    def __init__(self, password: str):
         self._password = password
 
     def hash_password(self) -> str:
@@ -19,10 +19,6 @@ class Password:
             is_verify = pwd_context.verify(self._password, hashed_password)
             if not is_verify:
                 raise UnauthorizedException
-
             return is_verify
         except UnknownHashError:
             raise UnauthorizedException
-
-
-password_worker = Password()

@@ -6,7 +6,7 @@ services:
     volumes:
       - ./backend/authentication/app/:/code/app
     env_file:
-      - ./backend/authentication/app/.env
+      - backend/authentication/.env
     ports:
       - 8000:8000
     depends_on:
@@ -20,7 +20,7 @@ services:
       - '6500:5432'
     restart: always
     env_file:
-      - backend/authentication/app/.env
+      - backend/authentication/.env
     volumes:
       - postgres-db:/var/lib/postgresql/data
 
@@ -33,7 +33,7 @@ services:
     volumes:
       - redis_cache:/data
     environment:
-#      - REDIS_PASSWORD=3050132596
+      #      - REDIS_PASSWORD=3050132596
       - REDIS_IO_THREADS_DO_READS=true
       - REDIS_IO_THREADS=4
     command: redis-server --requirepass 3050132596

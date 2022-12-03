@@ -19,7 +19,7 @@ class TokenWorker:
         return access_token
 
     async def _create_refresh_token(self):
-        refresh_token_expires = datetime.utcnow() + timedelta(minutes=jwt_config.refresh_token_expire)
+        refresh_token_expires = datetime.utcnow() + timedelta(days=jwt_config.refresh_token_expire)
         refresh_token = self._create_token(data={"exp": refresh_token_expires})
         return refresh_token
 
