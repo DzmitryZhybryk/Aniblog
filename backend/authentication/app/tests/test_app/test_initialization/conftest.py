@@ -9,10 +9,10 @@ from fastapi.testclient import TestClient
 CURRENT_DIR = Path(__file__).parent
 os.environ['DATABASE_URL'] = f"sqlite:///{CURRENT_DIR / 'test_db.sqlite3'}"
 
-from ....models import models
-from ....database import connect_database, disconnect_database
-from ....main import app
-from ...services import has_db_user, create_initial_user, has_db_roles, create_users_roles
+from backend.authentication.app.models import models
+from backend.authentication.app.database import connect_database, disconnect_database
+from backend.authentication.app.main import app
+from backend.authentication.app.users.services import has_db_user, create_initial_user, has_db_roles, create_users_roles
 
 client = TestClient(app)
 

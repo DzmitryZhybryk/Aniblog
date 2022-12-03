@@ -1,13 +1,14 @@
-import aioredis
-from cashews import cache, Cache
-
 from abc import ABC, abstractmethod
+
+import aioredis
 from aioredis import Redis
 from aioredis.exceptions import RedisError
+from cashews import Cache
 from databases import Database
+from datetime import timedelta
 
-from .exception import RedisConnectionError
 from .config import database_config
+from .exception import RedisConnectionError
 
 DATABASE_URL = f"postgresql://{database_config.postgres_user}:{database_config.postgres_password}@" \
                f"{database_config.postgres_host}/{database_config.postgres_db}"
@@ -72,7 +73,7 @@ class RedisWorker(RedisBase):
         await self._connection.expire(key, expire)
 
     @exceptions_handler
-    async def hset_data(self, key: str, expire: int | None = None, **kwargs):
+    async def hset_data(self, key: str, expire: timedelta | None = None, **kwargs):
         for item, value in kwargs.items():
             await self._connection.hset(key, item, value)
             await self._connection.expire(key, expire)
@@ -93,6 +94,7 @@ class RedisWorker(RedisBase):
 
 
 database = DatabaseWorker(DATABASE_URL)
+
 redis_database = RedisWorker(url=f"{database_config.redis_host}",
                              password=f"{database_config.redis_password}",
                              db=database_config.redis_initialization_db)
@@ -101,10 +103,10 @@ cache_router = Cache()
 cache_router.setup(f"{database_config.redis_host}{database_config.redis_rout_cash_db}",
                    password=database_config.redis_password,
                    socket_connect_timeout=database_config.socket_connect_timeout, retry_on_timeout=True,
-                   hash_key=database_config.hash_key, digestmod=database_config.digestmod)
+                   hash_key=database_config.redis_hash_key, digestmod=database_config.digestmod)
 
 redis_qwery_cash_db = Cache()
 redis_qwery_cash_db.setup(f"{database_config.redis_host}{database_config.redis_qwery_cash_db}",
                           password=database_config.redis_password,
                           socket_connect_timeout=database_config.socket_connect_timeout, retry_on_timeout=True,
-                          hash_key=database_config.hash_key, digestmod=database_config.digestmod)
+                          hash_key=database_config.redis_hash_key, digestmod=database_config.digestmod)

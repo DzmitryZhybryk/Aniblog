@@ -4,6 +4,7 @@ import pytest_check as check
 from requests import Response
 from fastapi import status
 
+
 class TestLogin:
     URL = "/api/auth/token/"
 
@@ -17,12 +18,3 @@ class TestLogin:
         response: dict = login_page.json()
         check.is_not_none(response.get("access_token"))
         check.equal(response.get("token_type"), expected_token_type)
-
-
-class TestRegistration:
-    URL = "/api/auth/registration/"
-
-    @pytest.mark.parametrize("test_user, url", [
-        ({"username": "djinkster", "password": "djinkster", "confirm_password": "djinkster"}, URL)])
-    def test_registration_user_response(self, registration_page: Response, test_user: dict, url: str):
-        print(registration_page.status_code)

@@ -2,51 +2,60 @@ from pathlib import Path
 
 from pydantic import BaseSettings
 
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).parent.parent
 
 
 class DatabaseConfig(BaseSettings):
     roles: set = {"admin", "moderator", "base_user"}
 
-    database_port: int = 6500
-    postgres_user: str = "dzmitry_zhybryk"
-    postgres_password: str = "3050132596"
-    postgres_db: str = "aniblog_db"
-    postgres_host: str = "postgres"
-    postgres_hostname: str = "127.0.0.1"
+    database_port: int
+    postgres_user: str
+    postgres_password: str
+    postgres_db: str
+    postgres_host: str
+    postgres_hostname: str
 
-    redis_host: str = "redis://redis/"
-    redis_username: str = "dzmitry_zhybryk"
-    redis_password: str = "3050132596"
+    redis_host: str
+    redis_username: str
+    redis_password: str
     redis_initialization_db: int = 0
     redis_rout_cash_db: int = 1
     redis_qwery_cash_db: int = 2
     expire_verification_code_time: int = 300  # second
     socket_connect_timeout: float = 0.1
-    hash_key: str = "somedificultkey"
-    digestmod: str = "sha256"
+    redis_hash_key: str
+    digestmod: str
 
     class Config:
-        env_file = "./.env"
+        env_file = BASE_DIR / '.env'
 
 
 class JWTConfig(BaseSettings):
-    secret_key: str = 'nJ98h9ahAa8h3AH98ahw9dhapw1Hd8'
-    jwt_algorithm: str = "HS256"
-    access_token_expire: int = 15
-    refresh_token_expire: int = 43200
+    secret_key: str
+    jwt_algorithm: str
+    access_token_expire: int = 15  # minutes
+    refresh_token_expire: int = 30  # days
+
+    class Config:
+        env_file = BASE_DIR / '.env'
 
 
 class EmailSenderConfig(BaseSettings):
-    smtp_server_host: str = "smtp.gmail.com"
+    smtp_server_host: str
     smtp_server_port: int = 587
-    work_email: str = "mr.zhybryk@gmail.com"
-    email_password: str = "gjovrgkjcxurtztj"
+    work_email: str
+    email_password: str
+
+    class Config:
+        env_file = BASE_DIR / '.env'
 
 
 class BaseConfig(BaseSettings):
     upper_bound: int = 1000
     lower_bound: int = 9999
+
+    class Config:
+        env_file = BASE_DIR / '.env'
 
 
 database_config = DatabaseConfig()
