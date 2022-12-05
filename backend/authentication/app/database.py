@@ -10,8 +10,9 @@ from datetime import timedelta
 from .config import database_config
 from .exception import RedisConnectionError
 
-DATABASE_URL = f"postgresql://{database_config.postgres_user}:{database_config.postgres_password}@" \
-               f"{database_config.postgres_host}/{database_config.postgres_db}"
+# DATABASE_URL = f"postgresql://{database_config.postgres_user}:{database_config.postgres_password}@" \
+#                f"{database_config.postgres_host}/{database_config.postgres_db}"
+
 
 
 class DatabaseWorker:
@@ -93,20 +94,20 @@ class RedisWorker(RedisBase):
         await self._connection.delete(key)
 
 
-database = DatabaseWorker(DATABASE_URL)
+database = DatabaseWorker(database_config.database_url)
 
 redis_database = RedisWorker(url=f"{database_config.redis_host}",
                              password=f"{database_config.redis_password}",
                              db=database_config.redis_initialization_db)
 
 cache_router = Cache()
-cache_router.setup(f"{database_config.redis_host}{database_config.redis_rout_cash_db}",
+cache_router.setup(f"{database_config.redis_host}{database_config.redis_rout_cache_db}",
                    password=database_config.redis_password,
                    socket_connect_timeout=database_config.socket_connect_timeout, retry_on_timeout=True,
                    hash_key=database_config.redis_hash_key, digestmod=database_config.digestmod)
 
-redis_qwery_cash_db = Cache()
-redis_qwery_cash_db.setup(f"{database_config.redis_host}{database_config.redis_qwery_cash_db}",
+redis_qwery_cache_db = Cache()
+redis_qwery_cache_db.setup(f"{database_config.redis_host}{database_config.redis_qwery_cache_db}",
                           password=database_config.redis_password,
                           socket_connect_timeout=database_config.socket_connect_timeout, retry_on_timeout=True,
                           hash_key=database_config.redis_hash_key, digestmod=database_config.digestmod)

@@ -8,6 +8,7 @@ from sqlite3 import IntegrityError
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import HTTPException, status
 from orm.exceptions import NoMatch
+from datetime import timedelta
 
 from .schemas import UserRegistration, UserLogin, Token
 from ..base_storages import BaseStorage
@@ -72,12 +73,12 @@ class UserInitialization:
         return user
 
     async def save_user_data_to_redis(self, username: str, role: str, refresh_token: str) -> None:
-        await self._redis_connect.hset_data(key=refresh_token, expire=jwt_config.refresh_token_expire,
+        await self._redis_connect.hset_data(key=refresh_token, expire=timedelta(days=jwt_config.refresh_token_expire),
                                             username=username, role=role)
 
     async def authenticate(self, db_user: User, user: UserLogin) -> Token:
         """
-        Метод проверяет пароль пользователя на соответствие с паролем в базе данных PostgresSQL.
+        Метод проверяет пароль пользователя на соответствие с паролем в базе данных PostgreSQL.
 
         Args:
             db_user: User pydantic схема с данными пользователя из базы данных
@@ -140,7 +141,7 @@ class UserInitialization:
 
 class UserStorage(BaseStorage):
     """
-    Класс для работы с базой данных PostgreSQL.
+    Класс для работы с базой данных PostgresSQL.
     """
 
     def __init__(self):

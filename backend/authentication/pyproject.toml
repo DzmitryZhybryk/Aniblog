@@ -30,7 +30,7 @@ pyhumps = "^3.8.0"
 cashews = "^5.0.0"
 
 [tool.poetry.group.test]
-optional = true
+optional = false
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.1.2"

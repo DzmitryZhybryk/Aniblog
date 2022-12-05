@@ -14,14 +14,15 @@ class DatabaseConfig(BaseSettings):
     postgres_db: str
     postgres_host: str
     postgres_hostname: str
+    database_url: str
 
     redis_host: str
     redis_username: str
     redis_password: str
-    redis_initialization_db: int = 0
-    redis_rout_cash_db: int = 1
-    redis_qwery_cash_db: int = 2
-    expire_verification_code_time: int = 300  # second
+    redis_initialization_db: int
+    redis_rout_cache_db: int
+    redis_qwery_cache_db: int
+    expire_verification_code_time: int  # second
     socket_connect_timeout: float = 0.1
     redis_hash_key: str
     digestmod: str
@@ -33,8 +34,8 @@ class DatabaseConfig(BaseSettings):
 class JWTConfig(BaseSettings):
     secret_key: str
     jwt_algorithm: str
-    access_token_expire: int = 15  # minutes
-    refresh_token_expire: int = 30  # days
+    access_token_expire: int  # minutes
+    refresh_token_expire: int  # days
 
     class Config:
         env_file = BASE_DIR / '.env'

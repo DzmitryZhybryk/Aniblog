@@ -2,8 +2,8 @@ FROM python:3.10
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 WORKDIR /code
-COPY ./backend/authentication/poetry.lock ./backend/authentication/pyproject.toml ./
-COPY ./backend/authentication/app /code/app
+COPY poetry.lock ./pyproject.toml ./
+COPY app /code/app
 RUN pip install poetry
 RUN poetry config virtualenvs.create false
 RUN poetry lock

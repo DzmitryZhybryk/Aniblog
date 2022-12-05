@@ -10,7 +10,7 @@ from .schemas import UserRegistrationResponse, UserRegistration, Token, UserLogi
 router = APIRouter()
 
 
-@router.post("/register/", tags=["Initialization"], response_model=UserRegistrationResponse,
+@router.post("/registration/", tags=["Initialization"], response_model=UserRegistrationResponse,
              status_code=status.HTTP_201_CREATED)
 async def registration(user: UserRegistration) -> UserRegistrationResponse:
     """Роут для регистрации новых пользователей"""
@@ -18,7 +18,7 @@ async def registration(user: UserRegistration) -> UserRegistrationResponse:
     return response
 
 
-@router.post("/register/confirm/", response_model=Token, tags=["Initialization"], status_code=status.HTTP_201_CREATED)
+@router.post("/registration/confirm/", response_model=Token, tags=["Initialization"], status_code=status.HTTP_201_CREATED)
 async def confirm_registration(code: int = Body(embed=True)) -> Token:
     """Роут для подтверждения регистрации новых пользователей"""
     token: Token = await worker.validate_user_registration(code)

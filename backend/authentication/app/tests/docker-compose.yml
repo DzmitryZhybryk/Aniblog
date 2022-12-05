@@ -1,32 +1,33 @@
 version: '3'
 services:
-  web:
-    build: ./backend/authentication
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+  web-test:
+    build: ../../../.
+    container_name: web-test
+    command: pytest app.tests.test_app.test_example.py
     volumes:
       - ./backend/authentication/app/:/code/app
     env_file:
-      - backend/authentication/.env
+      - backend/authentication/app/tests/.env
     ports:
       - 8000:8000
     depends_on:
-      - postgres
-      - redis
+      - postgres-test
+      - redis-test
 
-  postgres:
+  postgres-test:
     image: postgres
-    container_name: postgres
+    container_name: postgres-test
     ports:
       - '6500:5432'
     restart: always
     env_file:
-      - backend/authentication/.env
+      - backend/authentication/app/tests/.env
     volumes:
       - postgres-db:/var/lib/postgresql/data
 
-  redis:
+  redis-test:
     image: redis
-    container_name: redis
+    container_name: redis-test
     ports:
       - '6379:6379'
     restart: always
