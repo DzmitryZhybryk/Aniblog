@@ -1,0 +1,5 @@
+*[D,d]ocker*
+.venv
+venv
+*py*cache*
+cmr.tif

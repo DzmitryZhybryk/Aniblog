@@ -43,6 +43,13 @@ async def current_user_update_password(update_data: PasswordUpdate, user: User =
     await worker.set_new_password(update_data=update_data, user=user)
 
 
+@router.get("/ping")
+async def pong():
+    # some async operation could happen here
+    # example: `notes = await get_all_notes()`
+    return {"ping": "pong!"}
+
+
 @router.post("/photo/",
              dependencies=[Depends(RoleRequired(database_config.roles))],
              tags=["User"],
