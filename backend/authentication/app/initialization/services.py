@@ -21,6 +21,7 @@ from ..utils.code_verification import verification_code
 from ..utils.email_sender import EmailSender
 from ..utils.password_verification import Password
 from ..utils.token import TokenWorker
+from ..responses import IncorrectLogin
 
 
 class UserInitialization:
@@ -66,7 +67,7 @@ class UserInitialization:
         """
         user_info = await self._redis_connect.get_data(key=code)
         if not user_info:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Неверный проверочный код")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Неверный проверочный код")
 
         await self._redis_connect.delete_data(key=code)
         user = UserRegistration.parse_raw(user_info)
@@ -93,7 +94,7 @@ class UserInitialization:
         """
         user_password = Password(password=user.password)
         if not user_password.verify_password(hashed_password=db_user.password):
-            raise UnauthorizedException
+            raise UnauthorizedException(detail=IncorrectLogin)
 
         await db_user.user_role.load()
         token_schema = await self._token_worker.get_token_schema(username=db_user.username, role=db_user.user_role.role,
@@ -117,12 +118,12 @@ class UserInitialization:
 
         """
         if not self._token_worker.decode_refresh_token(refresh_token=current_refresh_token):
-            raise UnauthorizedException
+            raise UnauthorizedException(detail=IncorrectLogin)
 
         current_user_username = await self._redis_connect.hget_data(name=current_refresh_token, key="username")
         current_user_role = await self._redis_connect.hget_data(name=current_refresh_token, key="role")
         if not current_user_username or not current_user_role:
-            raise UnauthorizedException
+            raise UnauthorizedException(detail=IncorrectLogin)
 
         token_schema: Token = await self._token_worker.get_token_schema(username=current_refresh_token,
                                                                         role=current_user_role, access_token=True)

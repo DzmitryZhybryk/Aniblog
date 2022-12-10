@@ -78,7 +78,7 @@ def exception_handler(request: Request, exc: UnauthorizedException):
     """Кастомное исключение для неавторизованных пользователей"""
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        content={"message": "Incorrect username or password"}
+        content=exc.detail.dict()
     )
 
 

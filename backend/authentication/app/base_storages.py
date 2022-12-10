@@ -6,6 +6,7 @@ from orm.exceptions import NoMatch
 from .models import User
 from .database import redis_qwery_cache_db
 from .exception import UnauthorizedException
+from .responses import IncorrectLogin
 
 
 class BaseStorage(ABC):
@@ -25,4 +26,4 @@ class BaseStorage(ABC):
             return user
         except NoMatch:
             if raise_nomatch:
-                raise UnauthorizedException
+                raise UnauthorizedException(detail=IncorrectLogin)

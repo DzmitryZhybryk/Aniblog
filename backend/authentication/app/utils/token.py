@@ -8,6 +8,7 @@ from jose import jwt, JWTError
 from ..config import jwt_config
 from ..exception import UnauthorizedException
 from ..initialization.schemas import Token
+from ..responses import IncorrectLogin
 
 
 class TokenWorker:
@@ -68,11 +69,11 @@ class TokenWorker:
         try:
             payload = jwt.decode(refresh_token, jwt_config.secret_key, algorithms=[jwt_config.jwt_algorithm])
             if payload.get("exp") < int(time()):
-                raise UnauthorizedException
+                raise UnauthorizedException(detail=IncorrectLogin)
 
             return refresh_token
         except JWTError:
-            raise UnauthorizedException
+            raise UnauthorizedException(detail=IncorrectLogin)
 
     @staticmethod
     def decode_token(input_token: str) -> str:
@@ -80,14 +81,14 @@ class TokenWorker:
             payload = jwt.decode(input_token, jwt_config.secret_key, algorithms=[jwt_config.jwt_algorithm])
             username: str = payload.get("sub")
             if username is None:
-                raise UnauthorizedException
+                raise UnauthorizedException(detail=IncorrectLogin)
 
             if payload.get("exp") < int(time()):
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
 
             return username
         except JWTError:
-            raise UnauthorizedException
+            raise UnauthorizedException(detail=IncorrectLogin)
 
 
 token = TokenWorker()
