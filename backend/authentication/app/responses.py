@@ -11,3 +11,7 @@ class CodeNotFound(BaseModel):
 
 class IncorrectLogin(BaseModel):
     detail: str = "Неверное имя пользователя или пароль"
+
+
+class NotAuthentication(BaseModel):
+    detail: str = "Нет авторизации"

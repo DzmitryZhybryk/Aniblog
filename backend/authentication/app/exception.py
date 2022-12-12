@@ -1,6 +1,6 @@
-from pydantic import BaseModel
-from .responses import IncorrectLogin
 from typing import Type
+
+from pydantic import BaseModel
 
 
 class CustomException(Exception):

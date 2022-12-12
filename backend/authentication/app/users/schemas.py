@@ -85,7 +85,7 @@ class PasswordUpdate(BaseModel):
 
     @validator("confirm_password")
     def passwords_match(cls, confirm_password: str, values: dict) -> str:
-        if "new_password" in values and "confirm_password" in values and confirm_password != values['new_password']:
+        if "new_password" in values and confirm_password != values['new_password']:
             raise ValueError('Пароли не совпадают!')
 
         return confirm_password

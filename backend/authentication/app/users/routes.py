@@ -7,6 +7,7 @@ from .schemas import UserOut, UserUpdate, PasswordUpdate
 from ..config import database_config
 from ..database import cache_router
 from ..models import User
+from ..responses import NotAuthentication
 
 router = APIRouter()
 
@@ -15,7 +16,10 @@ router = APIRouter()
             response_model=UserOut,
             dependencies=[Depends(RoleRequired(database_config.roles))],
             tags=["User"],
-            status_code=status.HTTP_200_OK)
+            status_code=status.HTTP_200_OK,
+            responses={200: {"description": "Операция выполнена успешно", "model": UserOut},
+                       403: {"description": "Попытка получения доступа без аутентификации",
+                             "model": NotAuthentication}})
 @cache_router(ttl=timedelta(minutes=1))
 async def current_user(user: User = Depends(worker.get_current_user)):
     """Роут для получения информации о текущем пользователе"""
@@ -29,7 +33,10 @@ async def current_user(user: User = Depends(worker.get_current_user)):
             response_model=UserUpdate,
             dependencies=[Depends(RoleRequired(database_config.roles))],
             tags=["User"],
-            status_code=status.HTTP_200_OK)
+            status_code=status.HTTP_200_OK,
+            responses={200: {"description": "Операция выполнена успешно", "model": UserUpdate},
+                       403: {"description": "Попытка получения доступа без аутентификации",
+                             "model": NotAuthentication}})
 @cache_router.invalidate(current_user)
 async def current_user_update(update_data: UserUpdate, user: User = Depends(worker.get_current_user)):
     """Роут для изменения данных текущего пользователя"""
@@ -37,24 +44,29 @@ async def current_user_update(update_data: UserUpdate, user: User = Depends(work
     return updated_user
 
 
-@router.post("/me/password/", dependencies=[Depends(RoleRequired(database_config.roles))], tags=["User"],
-             status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/me/password/",
+             dependencies=[Depends(RoleRequired(database_config.roles))],
+             tags=["User"],
+             status_code=status.HTTP_204_NO_CONTENT,
+             responses={204: {"description": "Операция выполнена успешно"},
+                        403: {"description": "Попытка получения доступа без аутентификации",
+                              "model": NotAuthentication}})
 async def current_user_update_password(update_data: PasswordUpdate, user: User = Depends(worker.get_current_user)):
     await worker.set_new_password(update_data=update_data, user=user)
 
 
-@router.get("/ping")
-async def pong():
-    # some async operation could happen here
-    # example: `notes = await get_all_notes()`
-    return {"ping": "pong!"}
-
-
-@router.post("/photo/",
-             dependencies=[Depends(RoleRequired(database_config.roles))],
-             tags=["User"],
-             status_code=status.HTTP_201_CREATED)
-async def upload_photo(photo: UploadFile | None = None):
-    photo.filename = "123.jpg"
-    content = await photo.read()
-    print(photo.filename)
+# @router.get("/ping")
+# async def pong():
+#     # some async operation could happen here
+#     # example: `notes = await get_all_notes()`
+#     return {"ping": "pong!"}
+#
+#
+# @router.post("/photo/",
+#              dependencies=[Depends(RoleRequired(database_config.roles))],
+#              tags=["User"],
+#              status_code=status.HTTP_201_CREATED)
+# async def upload_photo(photo: UploadFile | None = None):
+#     photo.filename = "123.jpg"
+#     content = await photo.read()
+#     print(photo.filename)

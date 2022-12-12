@@ -1,18 +1,19 @@
+from argparse import ArgumentParser
+
 import uvicorn
 from fastapi import status, Request, FastAPI
-from fastapi.responses import JSONResponse
-from argparse import ArgumentParser
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from fastapi.exceptions import RequestValidationError
-from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 
 from .database import database, redis_database
-from .models import models
-from .initialization.services import UserStorage
-from .exception import UnauthorizedException
 from .initialization.routes import router as init_routers
+from .initialization.services import UserStorage
+from .models import models
 from .users.routes import router as user_routes
+from .exception import UnauthorizedException
 
 parser = ArgumentParser(description="Authentication service")
 
@@ -74,12 +75,21 @@ async def on_shutdown() -> None:
 
 
 @app.exception_handler(UnauthorizedException)
-def exception_handler(request: Request, exc: UnauthorizedException):
+def unauthorized_exception_handler(request: Request, exc: UnauthorizedException):
     """Кастомное исключение для неавторизованных пользователей"""
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
         content=exc.detail.dict()
     )
+
+
+# @app.exception_handler(AuthenticationException)
+# def non_authentication_exception_handler(request: Request, exc: AuthenticationException):
+#     """Кастомное исключения для аутентифицированных пользователей"""
+#     return JSONResponse(
+#         status_code=status.HTTP_403_FORBIDDEN,
+#         content=exc.detail.dict()
+#     )
 
 
 @app.exception_handler(RequestValidationError)
