@@ -4,7 +4,7 @@ UserInitialization - класс, который инициализирует п�
 UserStorage - класс, который взаимодействует с базой данных.
 """
 from sqlite3 import IntegrityError
-
+import sqlalchemy
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import HTTPException, status
 from orm.exceptions import NoMatch
@@ -14,8 +14,8 @@ from .schemas import UserRegistration, UserLogin, Token
 from ..base_storages import BaseStorage
 from ..config import database_config
 from ..exception import UnauthorizedException
-from ..database import RedisWorker
-from ..models import User, Role
+from ..database import RedisWorker, database
+from ..models import user, role
 from ..config import jwt_config
 from ..utils.code_verification import verification_code
 from ..utils.email_sender import EmailSender
@@ -32,7 +32,7 @@ class UserInitialization:
     def __init__(self, redis_connect: RedisWorker, token_worker: TokenWorker):
         self._redis_connect = redis_connect
         self._token_worker = token_worker
-        self._user_model = User
+        self._user_model: sqlalchemy.Table = user
 
     async def _save_registration_data_to_redis(self, registration_code: str, user: UserRegistration) -> None:
         await self._redis_connect.set_data(key=registration_code, value=user.json(),
@@ -77,7 +77,7 @@ class UserInitialization:
         await self._redis_connect.hset_data(key=refresh_token, expire=timedelta(days=jwt_config.refresh_token_expire),
                                             username=username, role=role)
 
-    async def authenticate(self, db_user: User, user: UserLogin) -> Token:
+    async def authenticate(self, db_user, user: UserLogin) -> Token:
         """
         Метод проверяет пароль пользователя на соответствие с паролем в базе данных PostgreSQL.
 
@@ -96,10 +96,9 @@ class UserInitialization:
         if not user_password.verify_password(hashed_password=db_user.password):
             raise UnauthorizedException(detail=IncorrectLogin)
 
-        await db_user.user_role.load()
-        token_schema = await self._token_worker.get_token_schema(username=db_user.username, role=db_user.user_role.role,
+        token_schema = await self._token_worker.get_token_schema(username=db_user.username, role=db_user.user_role,
                                                                  refresh_token=True, access_token=True)
-        await self.save_user_data_to_redis(username=db_user.username, role=db_user.user_role.role,
+        await self.save_user_data_to_redis(username=db_user.username, role=db_user.user_role,
                                            refresh_token=token_schema.refresh_token)
         return token_schema
 
@@ -125,8 +124,8 @@ class UserInitialization:
         if not current_user_username or not current_user_role:
             raise UnauthorizedException(detail=IncorrectLogin)
 
-        token_schema: Token = await self._token_worker.get_token_schema(username=current_refresh_token,
-                                                                        role=current_user_role, access_token=True)
+        token_schema = await self._token_worker.get_token_schema(username=current_refresh_token,
+                                                                 role=current_user_role, access_token=True)
         return token_schema
 
     async def delete_refresh_token(self, refresh_token: str) -> None:
@@ -146,8 +145,8 @@ class UserStorage(BaseStorage):
     """
 
     def __init__(self):
-        self._user_model = User
-        self._role_model = Role
+        self._user_model: sqlalchemy.Table = user
+        self._role_model: sqlalchemy.Table = role
 
     async def has_users(self) -> bool:
         """
@@ -157,8 +156,9 @@ class UserStorage(BaseStorage):
             true если есть пользователи, false если нет.
 
         """
-        user_count = await self._user_model.objects.first()
-        return bool(user_count)
+        qwery = self._user_model.select()
+        users = await database.fetch_one(qwery)
+        return bool(users)
 
     async def has_roles(self) -> bool:
         """
@@ -168,8 +168,9 @@ class UserStorage(BaseStorage):
             true если есть роли, false если нет.
 
         """
-        roles_count = await self._role_model.objects.first()
-        return bool(roles_count)
+        qwery = self._role_model.select()
+        roles = await database.fetch_one(qwery)
+        return bool(roles)
 
     async def create_initial_roles(self) -> None:
         """
@@ -177,8 +178,9 @@ class UserStorage(BaseStorage):
 
         """
         if not await self.has_roles():
-            for role in database_config.roles:
-                await self._role_model.objects.create(role=role)
+            for item in database_config.roles:
+                qwery = self._role_model.insert().values(role=item)
+                await database.execute(qwery)
 
     async def create_initial_user(self) -> None:
         """
@@ -193,14 +195,16 @@ class UserStorage(BaseStorage):
 
         if not await self.has_users():
             hashed_password = Password(password="admin").hash_password()
-            initial_user_role = await self._role_model.objects.get(role="admin")
-            await self._user_model.objects.create(username="admin", password=hashed_password,
-                                                  user_role=initial_user_role,
-                                                  email="test@mail.ru")
+            qwery = self._role_model.select().where(self._role_model.c.role == "admin")
+            user_role = await database.fetch_one(qwery)
+            qwery = self._user_model.insert().values(username="admin", password=hashed_password, user_role=user_role.id,
+                                                     email="test@mail.ru")
+            await database.execute(qwery)
 
     async def _is_username_exist(self, username: str):
         try:
-            await self._user_model.objects.get(username=username)
+            qwery = self._user_model.select().where(self._user_model.c.username == username)
+            username = await database.fetch_one(qwery)
             if username:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -211,7 +215,8 @@ class UserStorage(BaseStorage):
 
     async def _is_email_exist(self, email: str):
         try:
-            await self._user_model.objects.get(email=email)
+            qwery = self._user_model.select().where(self._user_model.c.email == email)
+            email = await database.fetch_one(qwery)
             if email:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -224,7 +229,7 @@ class UserStorage(BaseStorage):
         if not await self._is_username_exist(username=username) and not await self._is_email_exist(email=email):
             return True
 
-    async def create(self, user_data: UserRegistration) -> User:
+    async def create(self, user_data: UserRegistration):
         """
         Метод создает пользователя в базе данных postgresSQL.
 
@@ -240,9 +245,11 @@ class UserStorage(BaseStorage):
         """
         hashed_password = Password(user_data.password).hash_password()
         try:
-            new_db_user_role = await self._role_model.objects.get(role="base_user")
-            new_db_user = await self._user_model.objects.create(username=user_data.username, password=hashed_password,
-                                                                user_role=new_db_user_role, email=user_data.email)
+            qwery = self._role_model.select().where(self._role_model.c.role == "base_user")
+            new_db_user_role = await database.fetch_one(qwery)
+            qwery = self._user_model.insert().values(username=user_data.username, password=hashed_password,
+                                                     user_role=new_db_user_role.id, email=user_data.email)
+            new_db_user = await database.execute(qwery)
             return new_db_user
         except (UniqueViolationError, IntegrityError) as ex:
             raise HTTPException(

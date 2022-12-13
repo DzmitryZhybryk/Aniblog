@@ -6,7 +6,7 @@ from humps import camelize
 
 
 class PhotosDict:
-    uuid: str
+    id: str
     url: str
 
 
@@ -43,18 +43,6 @@ class UserUpdate(BaseModel):
         """
         validate_email(email)
         return email
-
-    # @validator("nickname", pre=True)
-    # def nickname_lowercase(cls, value: str):
-    #     """
-    #     Тут должна быть документация
-    #     Args:
-    #         value:
-    #
-    #     Returns:
-    #
-    #     """
-    #     return value.lower()
 
 
 class UserOut(UserUpdate):

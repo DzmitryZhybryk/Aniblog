@@ -21,6 +21,7 @@ class UserLogin(BaseModel):
 class UserRegistration(UserLogin):
     confirm_password: str = Field(default=Required)
     email: str = Field(default=Required)
+    user_role: str = "base_user"
 
     class Config:
         schema_extra = {
@@ -29,6 +30,7 @@ class UserRegistration(UserLogin):
                 "email": "example@mail.ru",
                 "password": "123password",
                 "confirm_password": "123password",
+                "user_role": "base_user"
             }
         }
         alias_generator = camelize

@@ -52,13 +52,12 @@ class InitializationServices:
 
         """
         validated_user = await self._initialization.validate_code(code=code)
-        new_db_user = await self._storage.create(user_data=validated_user)
-        await new_db_user.user_role.load()
-        token_schema = await self._token_worker.get_token_schema(username=new_db_user.username,
-                                                                 role=new_db_user.user_role.role, access_token=True,
+        await self._storage.create(user_data=validated_user)
+        token_schema = await self._token_worker.get_token_schema(username=validated_user.username,
+                                                                 role=validated_user.user_role, access_token=True,
                                                                  refresh_token=True)
-        await self._initialization.save_user_data_to_redis(username=new_db_user.username,
-                                                           role=new_db_user.user_role.role,
+        await self._initialization.save_user_data_to_redis(username=validated_user.username,
+                                                           role=validated_user.user_role,
                                                            refresh_token=token_schema.refresh_token)
         return token_schema
 
@@ -95,7 +94,7 @@ class InitializationServices:
 
         """
         new_access_token = await self._initialization.compare_refresh_token(current_refresh_token=refresh_token)
-        token_schema: Token = Token(access_token=new_access_token, refresh_token=refresh_token)
+        token_schema: Token = Token(access_token=new_access_token.access_token, refresh_token=refresh_token)
         return token_schema
 
     async def logout_user(self, refresh_token: str) -> None:

@@ -8,12 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
-from .database import database, redis_database
+from .database import database, redis_database, metadata, engine
+from .exception import UnauthorizedException
 from .initialization.routes import router as init_routers
 from .initialization.services import UserStorage
-from .models import models
 from .users.routes import router as user_routes
-from .exception import UnauthorizedException
 
 parser = ArgumentParser(description="Authentication service")
 
@@ -59,18 +58,18 @@ app.include_router(init_routers, prefix="/api/auth")
 
 @app.on_event("startup")
 async def on_startup() -> None:
-    await models.create_all()
-    await database.connect_database()
+    metadata.create_all(bind=engine)
+    await database.connect()
     redis_database.connect()
 
     storage = UserStorage()
-    await storage.create_initial_roles()
+    await storage.create_initial_roles()  # должна идти первой
     await storage.create_initial_user()
 
 
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
-    await database.disconnect_database()
+    await database.disconnect()
     await redis_database.disconnect()
 
 
@@ -81,15 +80,6 @@ def unauthorized_exception_handler(request: Request, exc: UnauthorizedException)
         status_code=status.HTTP_401_UNAUTHORIZED,
         content=exc.detail.dict()
     )
-
-
-# @app.exception_handler(AuthenticationException)
-# def non_authentication_exception_handler(request: Request, exc: AuthenticationException):
-#     """Кастомное исключения для аутентифицированных пользователей"""
-#     return JSONResponse(
-#         status_code=status.HTTP_403_FORBIDDEN,
-#         content=exc.detail.dict()
-#     )
 
 
 @app.exception_handler(RequestValidationError)

@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).parent.parent
 
 
 class DatabaseConfig(BaseSettings):
-    roles: set = {"admin", "moderator", "base_user"}
+    roles: set = {2, 3, 1}
 
     database_port: int
     postgres_user: str

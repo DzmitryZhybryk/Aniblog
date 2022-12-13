@@ -1,30 +1,22 @@
 from abc import ABC, abstractmethod
+from datetime import timedelta
 
 import aioredis
+import sqlalchemy
 from aioredis import Redis
 from aioredis.exceptions import RedisError
 from cashews import Cache
 from databases import Database
-from datetime import timedelta
+from sqlalchemy.orm import sessionmaker
 
 from .config import database_config
 from .exception import RedisConnectionError
 
-# DATABASE_URL = f"postgresql://{database_config.postgres_user}:{database_config.postgres_password}@" \
-#                f"{database_config.postgres_host}/{database_config.postgres_db}"
+database = Database(database_config.database_url)
+metadata = sqlalchemy.MetaData()
+engine = sqlalchemy.create_engine(database_config.database_url)
 
-
-
-class DatabaseWorker:
-
-    def __init__(self, url: str):
-        self.database_obj = Database(url)
-
-    async def connect_database(self):
-        await self.database_obj.connect()
-
-    async def disconnect_database(self):
-        await self.database_obj.disconnect()
+Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 def exceptions_handler(func):
@@ -94,8 +86,6 @@ class RedisWorker(RedisBase):
         await self._connection.delete(key)
 
 
-database = DatabaseWorker(database_config.database_url)
-
 redis_database = RedisWorker(url=f"{database_config.redis_host}",
                              password=f"{database_config.redis_password}",
                              db=database_config.redis_initialization_db)
@@ -108,6 +98,6 @@ cache_router.setup(f"{database_config.redis_host}{database_config.redis_rout_cac
 
 redis_qwery_cache_db = Cache()
 redis_qwery_cache_db.setup(f"{database_config.redis_host}{database_config.redis_qwery_cache_db}",
-                          password=database_config.redis_password,
-                          socket_connect_timeout=database_config.socket_connect_timeout, retry_on_timeout=True,
-                          hash_key=database_config.redis_hash_key, digestmod=database_config.digestmod)
+                           password=database_config.redis_password,
+                           socket_connect_timeout=database_config.socket_connect_timeout, retry_on_timeout=True,
+                           hash_key=database_config.redis_hash_key, digestmod=database_config.digestmod)

@@ -1,36 +1,28 @@
-import orm
-
+import sqlalchemy
 from uuid import uuid4
 from sqlalchemy.sql import func
+from .database import metadata
 
-from .database import database
+role = sqlalchemy.Table(
+    "roles", metadata,
 
-models = orm.ModelRegistry(database=database.database_obj)
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column("role", sqlalchemy.String(20), unique=True),
+)
 
+user = sqlalchemy.Table(
+    "users", metadata,
 
-class Role(orm.Model):
-    tablename = "roles"
-    registry = models
-    fields = {
-        "id": orm.Integer(primary_key=True),
-        "role": orm.String(max_length=20, unique=True)
-    }
-
-
-class User(orm.Model):
-    tablename = "users"
-    registry = models
-    fields = {
-        "id": orm.UUID(primary_key=True, allow_null=False, default=uuid4()),
-        "username": orm.String(unique=True, min_length=5, max_length=20),
-        "email": orm.Email(unique=True, max_length=100),
-        "password": orm.String(allow_blank=False, allow_null=False, max_length=500),
-        "nickname": orm.String(unique=True, max_length=50, allow_null=True),
-        "first_name": orm.String(allow_null=True, min_length=1, max_length=50),
-        "last_name": orm.String(allow_null=True, min_length=1, max_length=50),
-        "created_at": orm.DateTime(default=func.now()),
-        "updated_at": orm.DateTime(allow_null=True, default=None),
-        "birthday": orm.DateTime(allow_null=True),
-        "photo": orm.String(allow_null=True, max_length=500, default=None),
-        "user_role": orm.ForeignKey(Role, on_delete="CASCADE")
-    }
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True),
+    sqlalchemy.Column("username", sqlalchemy.String(20), unique=True),
+    sqlalchemy.Column("email", sqlalchemy.String(100), unique=True, nullable=False),
+    sqlalchemy.Column("password", sqlalchemy.String(500), nullable=False),
+    sqlalchemy.Column("nickname", sqlalchemy.String(50), unique=True, nullable=True),
+    sqlalchemy.Column("first_name", sqlalchemy.String(50), nullable=True),
+    sqlalchemy.Column("last_name", sqlalchemy.String(50), nullable=True),
+    sqlalchemy.Column("created_at", sqlalchemy.DateTime, default=func.now()),
+    sqlalchemy.Column("updated_at", sqlalchemy.DateTime, nullable=True, default=None),
+    sqlalchemy.Column("birthday", sqlalchemy.DateTime, nullable=True),
+    sqlalchemy.Column("photo", sqlalchemy.String(500), nullable=True, default=None),
+    sqlalchemy.Column("user_role", sqlalchemy.Integer, sqlalchemy.ForeignKey(role.c.id), nullable=False),
+)

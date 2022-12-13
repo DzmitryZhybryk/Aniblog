@@ -6,7 +6,7 @@ from .dependency import worker, RoleRequired
 from .schemas import UserOut, UserUpdate, PasswordUpdate
 from ..config import database_config
 from ..database import cache_router
-from ..models import User
+from ..models import user
 from ..responses import NotAuthentication
 
 router = APIRouter()
@@ -21,11 +21,11 @@ router = APIRouter()
                        403: {"description": "Попытка получения доступа без аутентификации",
                              "model": NotAuthentication}})
 @cache_router(ttl=timedelta(minutes=1))
-async def current_user(user: User = Depends(worker.get_current_user)):
+async def current_user(user=Depends(worker.get_current_user)):
     """Роут для получения информации о текущем пользователе"""
     return (UserOut(
         username=user.username, first_name=user.first_name, last_name=user.last_name, nickname=user.nickname,
-        email=user.email, birthday=user.birthday, user_role=user.user_role.role, created_at=user.created_at
+        email=user.email, birthday=user.birthday, user_role=user.user_role, created_at=user.created_at
     ))
 
 
@@ -38,7 +38,7 @@ async def current_user(user: User = Depends(worker.get_current_user)):
                        403: {"description": "Попытка получения доступа без аутентификации",
                              "model": NotAuthentication}})
 @cache_router.invalidate(current_user)
-async def current_user_update(update_data: UserUpdate, user: User = Depends(worker.get_current_user)):
+async def current_user_update(update_data: UserUpdate, user=Depends(worker.get_current_user)):
     """Роут для изменения данных текущего пользователя"""
     updated_user = await worker.update_current_user(user, update_data)
     return updated_user
@@ -51,9 +51,8 @@ async def current_user_update(update_data: UserUpdate, user: User = Depends(work
              responses={204: {"description": "Операция выполнена успешно"},
                         403: {"description": "Попытка получения доступа без аутентификации",
                               "model": NotAuthentication}})
-async def current_user_update_password(update_data: PasswordUpdate, user: User = Depends(worker.get_current_user)):
+async def current_user_update_password(update_data: PasswordUpdate, user=Depends(worker.get_current_user)):
     await worker.set_new_password(update_data=update_data, user=user)
-
 
 # @router.get("/ping")
 # async def pong():
